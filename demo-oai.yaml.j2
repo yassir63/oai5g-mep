@@ -1,0 +1,443 @@
+# expected jinja variables, set by calling python script
+# {{gateway}} - typically 'faraday.inria.fr'
+# {{master}} - typically 'sopnode-l1.inria.fr'
+# {{namespace}} - typically 'oai5g'
+# {{logs}} - typically 'True' or 'False'
+# {{pcap}} - typically 'True' or 'False'
+# {{nodes}} - typically {'k8s_fit': 'fit01', 'amf_spgwu': 'sopnode-w3.inria.fr', 'gnb' : 'sopnode-w2.inria.fr'}
+# {{quectel_nodes}} - typically {'9': 'fit09', '18': 'fit18'}
+# {{rru}} - typically 'n300' or 'n320' or 'jaguar' or 'panther'
+# {{auto_start}} - typically 'True' or 'False'
+# {{gnb_only}} - typically 'True' or 'False'
+# {{regcred}} - typically {'name': 'jdoe', 'password': 'XX', 'email': 'jdoe@yahoo.fr'}
+# {{image}} - typically 'kubernetes'
+# {{phones}} - typically {1, 2,}
+# {{wait1_dict}} 
+# {{wait2_dict}} 
+# {{quectel_dict}} 
+# {{qhat_dict}} 
+# {{quectel_image}} - typically 'quectel-mbim'
+# {{oai5g_rru_repo}} - typically 'https://github.com/sopnode/oai5g-rru.git'
+# {{oai5g_rru_tag}} - typically 'v1.5.1-1.0'
+# {{oai_cn5g_fed_repo}} - typically 'https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed.git'
+# {{oai_cn5g_fed_tag}} - typically 'v1.5.1-1.0'
+# {{verbose}} - typically 'True' or 'False'
+
+nodes:
+  - id: faraday
+    hostname: {{gateway}}
+    formatter: TimeHostFormatter
+    verbose: {{verbose}}
+  - id: master
+    hostname: {{master}}
+    gateway: faraday
+    username: r2lab
+    formatter: TimeHostFormatter
+    verbose: {{verbose}}
+  {% for function, hostname in nodes.items() %}
+  - id: {{function}}
+    hostname: {{hostname}}
+    gateway: faraday
+    username: root
+    formatter: TimeHostFormatter
+    verbose: {{verbose}}
+  {% endfor %}
+  {% for n, hostname in quectel_dict.items() %}
+  - id: quectel_node_{{n}}
+    hostname: {{hostname}}
+    gateway: faraday
+    username: root
+    formatter: TimeHostFormatter
+    verbose: {{verbose}}
+  {% endfor %}
+  {% for n, hostname in qhat_dict.items() %}
+  - id: qhat_node_{{n}}
+    hostname: {{hostname}}
+    gateway: faraday
+    username: root
+    formatter: TimeHostFormatter
+    verbose: {{verbose}}
+  {% endfor %}
+
+jobs:
+  - id: load-images
+    node: faraday
+    critical: True
+    verbose: {{verbose}}
+    label: load image {{image}} on FIT worker node
+    commands:
+      - type: Run
+        command: >
+  {% if rru == "b210" %}    
+    {% if nodes['gnb'] == "pc01" %}
+          rhubarbe wait {{nodes['k8s_fit']}};
+          rhubarbe pdu on usrp01
+    {% elif nodes['gnb'] == "pc02" %}
+          rhubarbe wait {{nodes['k8s_fit']}};
+          rhubarbe pdu on usrp02
+    {% else %}
+          rhubarbe wait {{nodes['k8s_fit']}} {{nodes['gnb']}};
+          rhubarbe usrpon {{nodes['gnb']}}
+    {% endif %}
+  {% else %}
+          rhubarbe wait {{nodes['k8s_fit']}};
+  {% if rru != "rfsim" %}
+          rhubarbe-pdu on {{rru}}
+  {% endif %}
+  {% endif %}
+
+
+  {% if quectel_dict %}
+  - id: prepare-quectels
+    node: faraday
+    critical: True
+    verbose: {{verbose}}
+    label: load quectel image {{quectel_image}} on quectel UE nodes
+    commands:
+      - type: Run
+        command: >
+          rhubarbe usrpoff {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+      - type: Run
+        command: >
+          rhubarbe load -i {{quectel_image}} {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+      - type: Run
+        command: >
+          rhubarbe wait {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+      - type: Run
+        command: >
+          rhubarbe usrpon {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+      - type: Run
+        command: sleep 30
+  {% endif %}
+
+  {% if qhat_dict %}
+  - id: prepare-qhats
+    node: faraday
+    critical: True
+    verbose: {{verbose}}
+    label: switch on qhat UE nodes
+    commands:
+      - type: Run
+        command: >
+          {%for n in qhat_dict.keys()%}rhubarbe-pdu on qhat0{{n}}; {% endfor %}
+      - type: Run
+        command: sleep 30
+  {% endif %}
+
+  {% for n in quectel_dict.keys() %}
+  - id: init-quectel-node-{{n}}
+    required: prepare-quectels
+    node: quectel_node_{{n}}
+    critical: True
+    verbose: {{verbose}}
+    label: init Quectel UE on fit node {{n}}
+    commands:
+      - type: RunScript
+        command: >
+          {{nodes_sh}} check-quectel-on
+        includes: {{INCLUDES}}
+      - type: RunScript
+        command: >
+          {{nodes_sh}} quectel-init
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  {% for n in qhat_dict.keys() %}
+  - id: init-qhat-node-{{n}}
+    required: prepare-qhats
+    node: qhat_node_{{n}}
+    critical: True
+    verbose: {{verbose}}
+    label: init qhat0{{n}} UE 
+    commands:
+      - type: Run
+        command: prepare-ue
+  {% endfor %}
+
+  # for now, we do not to switch off other nodes 
+  # - id: turn-off-others
+  #   node: faraday
+  #   critical: False
+  #   verbose: {{verbose}}
+  #   label: turn off unused nodes
+  #   commands:
+  #   - type: Run
+  #     command: >
+  #       rhubarbe bye -- {% for h in nodes.values() %}~{{h}} {% endfor %}
+  #   - type: Run
+  #     command: sleep 1
+  #
+
+  - id: leave-join-k8s-fit-node
+    required:
+    - load-images
+    node: k8s_fit
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      Prepare node {{nodes['k8s_fit']}} for k8s & networking
+    commands:
+      - type: RunScript
+        command: demo-oai.sh init
+
+  - id: init-demo
+    required:
+      - leave-join-k8s-fit-node
+    node: k8s_fit
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Clone oai5g-rru, configure demo-oai.sh script on {{nodes['k8s_fit']}},
+      clone oai-cn5g-fed, apply patches for SophiaNode R2lab environment,
+      and run the k8s demo-oai script from {{nodes['k8s_fit']}}
+    commands:
+      - type: Run
+        command: >
+          rm -rf oai5g-rru;
+          git clone --branch {{oai5g_rru_tag}} {{oai5g_rru_repo}};
+          cp oai5g-rru/demo-oai.sh /root/;
+          chmod a+x /root/demo-oai.sh;
+          cp oai5g-rru/configure-demo-oai.sh /root/;
+          cp oai5g-rru/testing/logs.sh /root/;
+          cp oai5g-rru/testing/run-iperf-server.sh /root/;
+          /root/configure-demo-oai.sh update {{namespace}} {{nodes['amf_spgwu']}} {{nodes['gnb']}} {{rru}} {{gnb_only}} {{logs}} {{pcap}} /root {%for x in regcred.values()%}{{x}} {%endfor %};
+          rm -rf oai-cn5g-fed;
+          git clone --branch {{oai_cn5g_fed_tag}} {{oai_cn5g_fed_repo}}
+      - type: Run
+        command: /root/demo-oai.sh configure-all
+
+  - id: start-demo
+    required: init-demo
+    node: k8s_fit
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Launch OAI5G pods by calling demo-oai.sh start from {{nodes['k8s_fit']}}
+    commands:
+      - type: Run
+        command: /root/demo-oai.sh start
+ 
+  {% for n, cmd in wait1_dict.items() %}
+  - id: attach-phone{{n}}
+    required:
+      - start-demo
+    node: faraday
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      sleep and then wake-up phone{{n}}
+    commands:
+      - type: Run
+        command: {{cmd}}
+      - type: RunScript
+        command: >
+          {{faraday_sh}} macphone{{n}} r2lab-embedded/shell/macphone.sh phone-on
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  {% for n, cmd in wait2_dict.items() %}
+  - id: test-cx-phone{{n}}
+    required:
+      - attach-phone{{n}}
+    node: faraday
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      sleep again, then run test-cx and start bandwidth test with speedtest app
+    commands:
+      - type: Run
+        command: {{cmd}} 
+      - type: RunScript
+        command: >
+          {{faraday_sh}} macphone{{n}} r2lab-embedded/shell/macphone.sh phone-check-cx
+        includes: {{INCLUDES}}
+      - type: RunScript
+        command: >
+          {{faraday_sh}} macphone{{n}} r2lab-embedded/shell/macphone.sh phone-start-app
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  {% for n in quectel_dict.keys() %}
+  - id: attach-quectel-node-{{n}}
+    required:
+      - start-demo
+      - init-quectel-node-{{n}}
+    node: quectel_node_{{n}}
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      sleep 60s, attach quectel UE on fit node {{n}}; sleep 20s and test cx
+    commands:
+      - type: Run
+        command: sleep 60
+      - type: RunScript
+        command: >
+          {{nodes_sh}} start-quectel
+        includes: {{INCLUDES}}
+      - type: Run
+        command: sleep 20
+      - type: RunScript
+        command: >
+          {{nodes_sh}} check-quectel-cx
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  {% for n in qhat_dict.keys() %}
+  - id: attach-qhat-node-{{n}}
+    required:
+      - start-demo
+      - init-qhat-node-{{n}}
+    node: qhat_node_{{n}}
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      sleep 60s, attach qhat0{{n}} UE; sleep 20s and test cx
+    commands:
+      - type: Run
+        command: sleep 60
+      - type: RunScript
+        command: >
+          {{nodes_sh}} start-quectel
+        includes: {{INCLUDES}}
+      - type: Run
+        command: sleep 20
+      - type: RunScript
+        command: >
+          {{nodes_sh}} check-quectel-cx
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  - id: stop-demo
+    required: start-demo
+    node: k8s_fit
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Delete OAI5G pods by calling demo-oai.sh stop from {{nodes.k8s_fit}}
+    commands:
+      - type: Run
+        command: /root/demo-oai.sh stop
+      {% if logs == 'True' %}
+      - type: Pull
+        remotepaths: "/tmp/oai5g-stats.tgz"
+        localpath: "./"
+      {% endif %}
+
+  {% for n, cmd in wait1_dict.items() %}
+  - id: detach-phone{{n}}
+    required:
+      - stop-demo
+    node: faraday
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      detach phone{{n}}
+    commands:
+      - type: RunScript
+        command: >
+          {{faraday_sh}} macphone{{n}} r2lab-embedded/shell/macphone.sh phone-off
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  {% for n in quectel_dict.keys() %}
+  - id: detach-quectel-node-{{n}}
+    required:
+      - stop-demo
+    node: quectel_node_{{n}}
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      detach quectel UE on fit node {{n}}
+    commands:
+      - type: RunScript
+        command: >
+          {{nodes_sh}} stop-quectel
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  {% for n in qhat_dict.keys() %}
+  - id: detach-qhat-node-{{n}}
+    required:
+      - stop-demo
+    node: qhat_node_{{n}}
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      detach qhat0{{n}} UE
+    commands:
+      - type: RunScript
+        command: >
+          {{nodes_sh}} stop-quectel
+        includes: {{INCLUDES}}
+  {% endfor %}
+
+  - id: cleanup1
+    required: stop-demo
+    node: master
+    critical: False
+    verbose: {{verbose}}
+    label: Drain and delete FIT nodes from the k8s {{master}} cluster
+    commands:
+      - type: Run
+        command: fit-drain-nodes; fit-delete-nodes
+
+  - id: cleanup2
+    required: stop-demo
+    node: faraday
+    critical: False
+    verbose: {{verbose}}
+    commands:
+      - type: Run
+        command: >
+  {% if rru == "b210" %}    
+    {% if nodes['gnb'] == "pc01" %}
+          rhubarbe pdu off usrp01;
+          rhubarbe pdu off pc01;
+          rhubarbe off {{nodes['k8s_fit']}}
+    {% elif nodes['gnb'] == "pc02" %}
+          rhubarbe pdu off usrp02;
+          rhubarbe pdu off pc02;
+          rhubarbe off {{nodes['k8s_fit']}}
+    {% else %}
+          rhubarbe usrpoff {{nodes['gnb']}};
+          rhubarbe off {{nodes['k8s_fit']}} {{nodes['gnb']}}
+    {% endif %}
+  {% else %}
+    {% if rru != "rfsim" %}
+          rhubarbe-pdu off {{rru}};
+    {% endif %}
+          rhubarbe off {{nodes['k8s_fit']}}
+  {% endif %}
+
+
+  {% if quectel_dict %}
+  - id: cleanup-quectels
+    required:
+    {% for n in quectel_dict.keys() %}
+    - detach-quectel-node-{{n}}
+    {% endfor %}
+    node: faraday
+    critical: False
+    verbose: {{verbose}}
+    label: Turn off quectel nodes {{quectel_dict.keys()}}
+    commands:
+      - type: Run
+        command: rhubarbe usrpoff {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+      - type: Run
+        command: rhubarbe off {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+  {% endif %}
+
+  {% if qhat_dict %}
+  - id: cleanup-qhats
+    required:
+    {% for n in qhat_dict.keys() %}
+    - detach-qhat-node-{{n}}
+    {% endfor %}
+    node: faraday
+    critical: False
+    verbose: {{verbose}}
+    label: Turn off qhat nodes {{qhat_dict.keys()}}
+    commands:
+      - type: Run
+        command: {%for n in qhat_dict.keys()%}rhubarbe-pdu off qhat0{{n}}; {% endfor %}
+  {% endif %}
