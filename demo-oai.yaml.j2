@@ -1,26 +1,17 @@
 # expected jinja variables, set by calling python script:
 #
 # {{gateway}} - typically 'faraday.inria.fr'
-# {{master}} - typically 'sopnode-l1.inria.fr'
-# {{namespace}} - typically 'oai5g'
-# {{logs}} - typically 'True' or 'False'
-# {{pcap}} - typically 'True' or 'False'
 # {{auto_start}} - typically 'True' or 'False'
-# {{nodes}} - typically {'k8s_fit': 'fit01', 'amf_spgwu': 'sopnode-w3.inria.fr', 'gnb' : 'sopnode-w2.inria.fr'}
+# {{nodes}} - typically {'core': 'fit01', 'gnb': 'fit02', 'mep' : 'fit03'}
 # {{phones}} - typically [1, 2]
 # {{wait1_dict}} - typically  {1: "echo 'wait for 55s for eNB to start up before waking up phone1'; sleep 55"}
 # {{wait2_dict}} - typically {1: "echo 'wait for 15s for phone1 before starting tests'; sleep 15"}
 # {{quectel_dict}} - typically  {'7': 'fit07'}
 # {{qhat_dict}} - typically {'1': 'qhat01', '2': 'qhat02'}
-# {{gnb_only}} - typically 'True' or 'False'
-# {{rru}} - typically 'n300' or 'n320' or 'jaguar' or 'panther'
+# {{rru}} - typically 'b210' or 'rfsim'
 # {{regcred}} - typically {'name': 'jdoe', 'password': 'XX', 'email': 'jdoe@yahoo.fr'}
 # {{image}} - typically 'kubernetes'
 # {{quectel_image}} - typically 'quectel-mbim'
-# {{oai5g_rru_repo}} - typically 'https://github.com/sopnode/oai5g-rru.git'
-# {{oai5g_rru_tag}} - typically 'v1.5.1-1.0'
-# {{oai_cn5g_fed_repo}} - typically 'https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed.git'
-# {{oai_cn5g_fed_tag}} - typically 'v1.5.1-1.0'
 # {{verbose}} - typically 'True' or 'False'
 
 nodes:
@@ -28,14 +19,8 @@ nodes:
     hostname: {{gateway}}
     formatter: TimeHostFormatter
     verbose: {{verbose}}
-  - id: master
-    hostname: {{master}}
-    gateway: faraday
-    username: r2lab
-    formatter: TimeHostFormatter
-    verbose: {{verbose}}
   {% for function, hostname in nodes.items() %}
-  - id: {{function}}
+  - id: {{function}}_node
     hostname: {{hostname}}
     gateway: faraday
     username: root
@@ -60,7 +45,8 @@ nodes:
   {% endfor %}
 
 jobs:
-  - id: load-images
+  {% for function, hostname in nodes.items() %}
+  - id: load-image-{{function}}
     node: faraday
     critical: True
     verbose: {{verbose}}
@@ -68,19 +54,29 @@ jobs:
     commands:
       - type: Run
         command: >
+          rhubarbe load -i {{image}} {{hostname}};
+          rhubarbe wait {{hostname}}
+  {% endfor %} 
+
+  - id: prepare-gnb
+    required: load-image-gnb
+    node: faraday
+    critical: True
+    verbose: {{verbose}}
+    label: prepare gnb
+    commands:
+      - type: Run
+        command: >
   {% if rru == "b210" %}    
     {% if nodes['gnb'] == "pc01" %}
-          rhubarbe wait {{nodes['k8s_fit']}};
-          rhubarbe pdu on usrp01
+          rhubarbe pdu on usrp01; sleep 20;
     {% elif nodes['gnb'] == "pc02" %}
-          rhubarbe wait {{nodes['k8s_fit']}};
-          rhubarbe pdu on usrp02
+          rhubarbe pdu on usrp02; sleep 20;
     {% else %}
-          rhubarbe wait {{nodes['k8s_fit']}} {{nodes['gnb']}};
+          rhubarbe wait {{nodes['gnb']}};
           rhubarbe usrpon {{nodes['gnb']}}
     {% endif %}
   {% else %}
-          rhubarbe wait {{nodes['k8s_fit']}};
   {% if rru != "rfsim" %}
           rhubarbe-pdu on {{rru}}
   {% endif %}
@@ -99,7 +95,7 @@ jobs:
           rhubarbe usrpoff {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
       - type: Run
         command: >
-          rhubarbe load -i {{quectel_image}} {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+          rhubarbe load -i {{quectel_image}}  {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
       - type: Run
         command: >
           rhubarbe wait {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
@@ -168,51 +164,78 @@ jobs:
   #     command: sleep 1
   #
 
-  - id: leave-join-k8s-fit-node
+  - id: init-core
     required:
-    - load-images
-    node: k8s_fit
-    critical: False
-    verbose: {{verbose}}
-    label: >
-      Prepare node {{nodes['k8s_fit']}} for k8s & networking
-    commands:
-      - type: RunScript
-        command: demo-oai.sh init
-
-  - id: init-demo
-    required:
-      - leave-join-k8s-fit-node
-    node: k8s_fit
+      - load-image-core
+    node: core_node
     critical: True
     verbose: {{verbose}}
     label: >
-      Clone oai5g-rru, configure demo-oai.sh script on {{nodes['k8s_fit']}},
-      clone oai-cn5g-fed, apply patches for SophiaNode R2lab environment,
-      and run the k8s demo-oai script from {{nodes['k8s_fit']}}
+      Clone oai5g-rnis and ...
     commands:
       - type: Run
         command: >
           rm -rf oai5g-rru;
-          git clone --branch {{oai5g_rru_tag}} {{oai5g_rru_repo}};
-          cp oai5g-rru/demo-oai.sh /root/;
-          chmod a+x /root/demo-oai.sh;
-          cp oai5g-rru/configure-demo-oai.sh /root/;
-          cp oai5g-rru/testing/logs.sh /root/;
-          cp oai5g-rru/testing/run-iperf-server.sh /root/;
-          /root/configure-demo-oai.sh update {{namespace}} {{nodes['amf_spgwu']}} {{nodes['gnb']}} {{rru}} {{gnb_only}} {{logs}} {{pcap}} /root {%for x in regcred.values()%}{{x}} {%endfor %};
-          rm -rf oai-cn5g-fed;
-          git clone --branch {{oai_cn5g_fed_tag}} {{oai_cn5g_fed_repo}}
-      - type: Run
-        command: /root/demo-oai.sh configure-all
+          git clone --branch 
 
-  - id: start-demo
-    required: init-demo
-    node: k8s_fit
+  - id: init-gnb
+    required:
+      - load-image-gnb
+    node: gnb_node
     critical: True
     verbose: {{verbose}}
     label: >
-      Launch OAI5G pods by calling demo-oai.sh start from {{nodes['k8s_fit']}}
+      Clone oai5g-rnis and ...
+    commands:
+      - type: Run
+        command: >
+          rm -rf oai5g-rru;
+          git clone --branch 
+
+  - id: init-mep
+    required:
+      - load-image-mep
+    node: mep_node
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Clone oai5g-rnis and ...
+    commands:
+      - type: Run
+        command: >
+          rm -rf oai5g-rru;
+          git clone --branch 
+
+
+  - id: start-core
+    required: init-core
+    node: core_node
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Do
+    commands:
+      - type: Run
+        command: /root/demo-oai.sh start
+ 
+  - id: start-gnb
+    required: init-gnb
+    node: gnb_node
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Do
+    commands:
+      - type: Run
+        command: /root/demo-oai.sh start
+ 
+  - id: start-mep
+    required: init-mep
+    node: mep_node
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Do
     commands:
       - type: Run
         command: /root/demo-oai.sh start
@@ -220,7 +243,7 @@ jobs:
   {% for n, cmd in wait1_dict.items() %}
   - id: attach-phone{{n}}
     required:
-      - start-demo
+      - start-mep
     node: faraday
     critical: False
     verbose: {{verbose}}
@@ -260,7 +283,7 @@ jobs:
   {% for n in quectel_dict.keys() %}
   - id: attach-quectel-node-{{n}}
     required:
-      - start-demo
+      - start-mep
       - init-quectel-node-{{n}}
     node: quectel_node_{{n}}
     critical: False
@@ -285,7 +308,7 @@ jobs:
   {% for n in qhat_dict.keys() %}
   - id: attach-qhat-node-{{n}}
     required:
-      - start-demo
+      - start-mep
       - init-qhat-node-{{n}}
     node: qhat_node_{{n}}
     critical: False
@@ -308,20 +331,16 @@ jobs:
   {% endfor %}
 
   - id: stop-demo
-    required: start-demo
-    node: k8s_fit
+    required: start-mep
+    node: faraday
     critical: True
     verbose: {{verbose}}
     label: >
-      Delete OAI5G pods by calling demo-oai.sh stop from {{nodes.k8s_fit}}
+      Delete 
     commands:
       - type: Run
         command: /root/demo-oai.sh stop
-      {% if logs == 'True' %}
-      - type: Pull
-        remotepaths: "/tmp/oai5g-stats.tgz"
-        localpath: "./"
-      {% endif %}
+
 
   {% for n, cmd in wait1_dict.items() %}
   - id: detach-phone{{n}}
@@ -371,17 +390,8 @@ jobs:
         includes: {{INCLUDES}}
   {% endfor %}
 
-  - id: cleanup1
-    required: stop-demo
-    node: master
-    critical: False
-    verbose: {{verbose}}
-    label: Drain and delete FIT nodes from the k8s {{master}} cluster
-    commands:
-      - type: Run
-        command: fit-drain-nodes; fit-delete-nodes
 
-  - id: cleanup2
+  - id: cleanup
     required: stop-demo
     node: faraday
     critical: False
@@ -393,20 +403,18 @@ jobs:
     {% if nodes['gnb'] == "pc01" %}
           rhubarbe pdu off usrp01;
           rhubarbe pdu off pc01;
-          rhubarbe off {{nodes['k8s_fit']}}
     {% elif nodes['gnb'] == "pc02" %}
           rhubarbe pdu off usrp02;
           rhubarbe pdu off pc02;
-          rhubarbe off {{nodes['k8s_fit']}}
     {% else %}
           rhubarbe usrpoff {{nodes['gnb']}};
-          rhubarbe off {{nodes['k8s_fit']}} {{nodes['gnb']}}
+          rhubarbe off {{nodes['gnb']}}
     {% endif %}
   {% else %}
     {% if rru != "rfsim" %}
           rhubarbe-pdu off {{rru}};
     {% endif %}
-          rhubarbe off {{nodes['k8s_fit']}}
+          rhubarbe off {{nodes['gnb']}}
   {% endif %}
 
 
