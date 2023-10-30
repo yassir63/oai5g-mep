@@ -2,7 +2,8 @@
 #
 # {{gateway}} - typically 'faraday.inria.fr'
 # {{auto_start}} - typically 'True' or 'False'
-# {{nodes}} - typically {'core': 'fit01', 'gnb': 'fit02', 'mep' : 'fit03'}
+# {{nodes}} - typically {'core': 'fit01', 'ran': 'fit02', 'mep' : 'fit03'}
+# {{nodes_str}} - typically '1 2 3'
 # {{phones}} - typically [1, 2]
 # {{wait1_dict}} - typically  {1: "echo 'wait for 55s for eNB to start up before waking up phone1'; sleep 55"}
 # {{wait2_dict}} - typically {1: "echo 'wait for 15s for phone1 before starting tests'; sleep 15"}
@@ -45,36 +46,34 @@ nodes:
   {% endfor %}
 
 jobs:
-  {% for function, hostname in nodes.items() %}
-  - id: load-image-{{function}}
+  - id: load-image
     node: faraday
     critical: True
     verbose: {{verbose}}
-    label: load image {{image}} on FIT worker node
+    label: load image {{image}} on FIT nodes
     commands:
       - type: Run
         command: >
-          rhubarbe load -i {{image}} {{hostname}};
-          rhubarbe wait {{hostname}}
-  {% endfor %} 
+          rhubarbe load -i {{image}} {{nodes_str}};
+          rhubarbe wait {{nodes_str}}
 
-  - id: prepare-gnb
-    required: load-image-gnb
+  - id: prepare-ran
+    required: load-image
     node: faraday
     critical: True
     verbose: {{verbose}}
-    label: prepare gnb
+    label: prepare ran
     commands:
       - type: Run
         command: >
   {% if rru == "b210" %}    
-    {% if nodes['gnb'] == "pc01" %}
+    {% if nodes['ran'] == "pc01" %}
           rhubarbe pdu on usrp01; sleep 20;
-    {% elif nodes['gnb'] == "pc02" %}
+    {% elif nodes['ran'] == "pc02" %}
           rhubarbe pdu on usrp02; sleep 20;
     {% else %}
-          rhubarbe wait {{nodes['gnb']}};
-          rhubarbe usrpon {{nodes['gnb']}}
+          rhubarbe wait {{nodes['ran']}};
+          rhubarbe usrpon {{nodes['ran']}}
     {% endif %}
   {% else %}
   {% if rru != "rfsim" %}
@@ -166,46 +165,39 @@ jobs:
 
   - id: init-core
     required:
-      - load-image-core
+      - load-image
     node: core_node
     critical: True
     verbose: {{verbose}}
     label: >
-      Clone oai5g-rnis and ...
+      Clone blueprint, configure IP forwarding for core-network host and launch containers
     commands:
-      - type: Run
-        command: >
-          rm -rf oai5g-rru;
-          git clone --branch 
+      - type: RunScript
+        command: core-network.sh init
 
-  - id: init-gnb
+  - id: init-ran
     required:
-      - load-image-gnb
-    node: gnb_node
+      - load-image
+    node: ran_node
     critical: True
     verbose: {{verbose}}
     label: >
-      Clone oai5g-rnis and ...
+      Clone blueprint, configure IP forwarding for ran host and launch containers
     commands:
-      - type: Run
-        command: >
-          rm -rf oai5g-rru;
-          git clone --branch 
+      - type: RunScript
+        command: ran.sh init
 
   - id: init-mep
     required:
-      - load-image-mep
+      - load-image
     node: mep_node
     critical: True
     verbose: {{verbose}}
     label: >
-      Clone oai5g-rnis and ...
+       Clone blueprint and configure IP forwarding for mep host
     commands:
-      - type: Run
-        command: >
-          rm -rf oai5g-rru;
-          git clone --branch 
-
+      - type: RunScript
+        command: mep.sh init
 
   - id: start-core
     required: init-core
@@ -213,21 +205,21 @@ jobs:
     critical: True
     verbose: {{verbose}}
     label: >
-      Do
+      Deploy core-network and cm docker containers
     commands:
-      - type: Run
-        command: /root/demo-oai.sh start
+      - type: RunScript
+        command: core-network.sh start
  
-  - id: start-gnb
-    required: init-gnb
-    node: gnb_node
+  - id: start-ran
+    required: init-ran
+    node: ran_node
     critical: True
     verbose: {{verbose}}
     label: >
-      Do
+      Deploy ran container and start oai-gnb, oai-flexric, rabbitmq and then, rnis-xapp
     commands:
-      - type: Run
-        command: /root/demo-oai.sh start
+      - type: RunScript
+        command: ran.sh start
  
   - id: start-mep
     required: init-mep
@@ -235,10 +227,10 @@ jobs:
     critical: True
     verbose: {{verbose}}
     label: >
-      Do
+      Deploy mep container and start oai-mep and oai-rnis
     commands:
-      - type: Run
-        command: /root/demo-oai.sh start
+      - type: RunScript
+        command: mep.sh start
  
   {% for n, cmd in wait1_dict.items() %}
   - id: attach-phone{{n}}
@@ -330,22 +322,44 @@ jobs:
         includes: {{INCLUDES}}
   {% endfor %}
 
-  - id: stop-demo
-    required: start-mep
-    node: faraday
-    critical: True
+  - id: stop-core
+    required: start-core
+    node: core_node
+    critical: False
     verbose: {{verbose}}
     label: >
-      Delete 
+      Delete core network and cm and then remove core-network container
+    commands:
+      - type: RunScript
+        command: core-network.sh stop
+ 
+  - id: stop-ran
+    required: start-ran
+    node: ran_node
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      Delete oai-gnb, oai-flexric, rabbitmq and rnis-xapp and then remove ran container and 
+    commands:
+      - type: RunScript
+        command: ran.sh stop
+ 
+  - id: stop-mep
+    required: start-mep
+    node: mep_node
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      Delete oai-mep and oai-rnis and then remove mep container
     commands:
       - type: Run
-        command: /root/demo-oai.sh stop
+        command: mep.sh stop
 
 
   {% for n, cmd in wait1_dict.items() %}
   - id: detach-phone{{n}}
     required:
-      - stop-demo
+      - stop-ran
     node: faraday
     critical: False
     verbose: {{verbose}}
@@ -361,7 +375,7 @@ jobs:
   {% for n in quectel_dict.keys() %}
   - id: detach-quectel-node-{{n}}
     required:
-      - stop-demo
+      - stop-ran
     node: quectel_node_{{n}}
     critical: False
     verbose: {{verbose}}
@@ -377,7 +391,7 @@ jobs:
   {% for n in qhat_dict.keys() %}
   - id: detach-qhat-node-{{n}}
     required:
-      - stop-demo
+      - stop-ran
     node: qhat_node_{{n}}
     critical: False
     verbose: {{verbose}}
@@ -392,7 +406,7 @@ jobs:
 
 
   - id: cleanup
-    required: stop-demo
+    required: stop-ran
     node: faraday
     critical: False
     verbose: {{verbose}}
@@ -400,21 +414,21 @@ jobs:
       - type: Run
         command: >
   {% if rru == "b210" %}    
-    {% if nodes['gnb'] == "pc01" %}
+    {% if nodes['ran'] == "pc01" %}
           rhubarbe pdu off usrp01;
           rhubarbe pdu off pc01;
-    {% elif nodes['gnb'] == "pc02" %}
+    {% elif nodes['ran'] == "pc02" %}
           rhubarbe pdu off usrp02;
           rhubarbe pdu off pc02;
     {% else %}
-          rhubarbe usrpoff {{nodes['gnb']}};
-          rhubarbe off {{nodes['gnb']}}
+          rhubarbe usrpoff {{nodes['ran']}};
+          rhubarbe off {{nodes_list}}
     {% endif %}
   {% else %}
     {% if rru != "rfsim" %}
           rhubarbe-pdu off {{rru}};
     {% endif %}
-          rhubarbe off {{nodes['gnb']}}
+          rhubarbe off {{nodes_list}}
   {% endif %}
 
 

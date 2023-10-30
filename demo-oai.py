@@ -30,13 +30,13 @@ from r2lab import r2lab_hostname, ListOfChoices, ListOfChoicesNullReset, find_lo
 ##########################################################################################
 
 # Default R2lab FIT node images
-default_image = 'u18-lowlat-kube-uhd'
+default_image = 'u20.04-docker-images-perf' # u20.04-perf r2lab image + apt upgrade + docker install + docker pull of all oai/rnis images
 #default_quectel_image = 'quectel-mbim'
 default_quectel_image = 'quectel-mbim-single-dnn'
 
-# Default FIT nodes used to launch core, gnb and mep containers
+# Default FIT nodes used to launch core, ran and mep containers
 default_core = 1
-default_gnb = 2
+default_ran = 2
 default_mep = 3
 
 # Default RRU
@@ -66,7 +66,7 @@ default_regcred_email = 'r2labuser@turletti.com'
 
 
 def run(*, mode, gateway, slicename, auto_start, load_images, 
-        core, gnb, mep, phones, quectel_nodes, qhat_nodes, rru, 
+        core, ran, mep, phones, quectel_nodes, qhat_nodes, rru, 
         regcred_name, regcred_password, regcred_email,
         image, quectel_image, verbose, dry_run):
     """
@@ -77,7 +77,7 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
         auto_start: pods will be launched
         load_images: FIT images will be deployed
         core: node name in which CN and CM will be deployed
-        gnb: node name in which gnb, flexric, rabbitmq and rnis-xapp will be deployed
+        ran: node name in which gnb, flexric, rabbitmq and rnis-xapp will be deployed
         mep: node name in which mep and rnis will be deployed
         phones: list of indices of phones to use
         quectel_nodes: list of indices of quectel UE nodes to use
@@ -116,9 +116,10 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
         auto_start=auto_start,
         nodes=dict(
             core=r2lab_hostname(core),
-            gnb=r2lab_hostname(gnb),
+            ran=r2lab_hostname(ran),
             mep=r2lab_hostname(mep),
         ),
+        nodes_str=f"{core} {ran} {mep}",
         phones=phones,
         wait1_dict=wait1_dict,
         wait2_dict=wait2_dict,
@@ -155,9 +156,9 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
 
 
     # retrieve jobs for the surgery part
-    j_load_images = [jobs_map[k] for k in jobs_map if k.startswith('load-image')]
+    j_load_image = jobs_map['load-image']
     j_start_demo = [jobs_map[k] for k in jobs_map if k.startswith('start')]
-    j_stop_demo = jobs_map['stop-demo']
+    j_stop_demo = [jobs_map[k] for k in jobs_map if k.startswith('stop')]
     j_cleanups = [jobs_map[k] for k in jobs_map if k.startswith('cleanup')]
 
     j_leave_joins = [jobs_map[k] for k in jobs_map if k.startswith('leave-join')]
@@ -188,8 +189,8 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
         ko_message = f"Could not cleanup demo"
         ok_message = f"Thank you, FIT nodes have been switched off"
     elif mode == "stop":
-        #scheduler.keep_only_between(starts=[j_stop_demo], ends=j_cleanups, keep_ends=False)
-        scheduler.keep_only([j_stop_demo]+j_detach_quectels+j_detach_qhats+j_detach_phones)
+        #scheduler.keep_only_between(starts=j_stop_demo, ends=j_cleanups, keep_ends=False)
+        scheduler.keep_only(j_stop_demo+j_detach_quectels+j_detach_qhats+j_detach_phones)
         ko_message = f"Could not stop containers"
         ok_message = f"""No more containers running
 Nota: If you are done with the demo, do not forget to clean up the demo:
@@ -205,7 +206,7 @@ Nota: If you are done with the demo, do not forget to clean up the demo:
         else:
             scheduler.keep_only_between(ends=j_start_demo + j_init_quectels + j_init_qhats, keep_ends=True)
         if not load_images:
-            scheduler.bypass_and_remove(j_load_images)
+            scheduler.bypass_and_remove([j_load_image])
 #TT see how to add scheduler.bypass_and_remove(j_init_quectels)
             purpose += f" (no image loaded)"
             if quectel_nodes and j_prepare_quectels in scheduler.jobs:
@@ -230,7 +231,8 @@ Nota: If you are done with the demo, do not forget to clean up the demo:
                 purpose += f" (phone(s) prepared: {phones})"
 
         if not auto_start:
-            scheduler.bypass_and_remove(j_start_demo)
+            for job in j_start_demo:
+                scheduler.bypass_and_remove(job)
             purpose += f" (NO auto start)"
             ok_message = f"RUN SetUp OK. You can now start the demo by running ./demo-oai.py --start"
         else:
@@ -339,8 +341,8 @@ def main():
     parser.add_argument("--core", default=default_core,
                         help="id of the FIT node that will run the core container")
 
-    parser.add_argument("--gnb", default=default_gnb,
-                        help="id of the FIT node that will run the gnb container")
+    parser.add_argument("--ran", default=default_ran,
+                        help="id of the FIT node that will run the ran container")
 
     parser.add_argument("--mep", default=default_mep,
                         help="id of the FIT node that will run the mep container")
@@ -390,9 +392,14 @@ def main():
                         help="only pretend to run, don't do anything")
 
     args = parser.parse_args()
+
+    if not args.load_images and not args.start and not args.stop:
+        print("USAGE: demo-oai.py: choose one of the following options: -l or --start or --stop")
+        exit (1)
+        
     print("Running the MEP demo version on following FIT nodes:")
     print(f"\t{r2lab_hostname(args.core)} for CN and CM containers")
-    print(f"\t{r2lab_hostname(args.gnb)} for gNB, flexric, rabbitmq and rnis-xapp containers")
+    print(f"\t{r2lab_hostname(args.ran)} for gNB, flexric, rabbitmq and rnis-xapp containers")
     print(f"\t{r2lab_hostname(args.mep)} for MEP and rnis containers")
             
     if args.quectel_nodes:
@@ -440,7 +447,7 @@ def main():
 
     run(mode=mode, gateway=default_gateway, slicename=args.slicename,
         auto_start=args.auto_start, load_images=args.load_images,
-        core=args.core, gnb=args.gnb, mep=args.mep,
+        core=args.core, ran=args.ran, mep=args.mep,
         phones=args.phones, quectel_nodes=args.quectel_nodes,
         qhat_nodes=args.qhat_nodes, rru=args.rru,
         regcred_name=args.regcred_name,
