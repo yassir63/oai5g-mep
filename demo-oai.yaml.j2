@@ -54,7 +54,7 @@ jobs:
     commands:
       - type: Run
         command: >
-          rhubarbe load -i {{image}} {{nodes_str}};
+          rhubarbe load -i {{image}} {{nodes_str}} -t 400;
           rhubarbe wait {{nodes_str}}
 
   - id: prepare-ran
@@ -94,7 +94,7 @@ jobs:
           rhubarbe usrpoff {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
       - type: Run
         command: >
-          rhubarbe load -i {{quectel_image}}  {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
+          rhubarbe load -i {{quectel_image}} -t 400  {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
       - type: Run
         command: >
           rhubarbe wait {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
