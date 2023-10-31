@@ -54,7 +54,7 @@ default_qhat_nodes = []
 # Default RRU used for the scenario.
 # Currently, following possible options:
 # ['b210', 'n300', 'n320', 'jaguar', 'panther', 'rfsim'] 
-default_rru = 'n300'
+default_rru = 'b210'
 
 default_gateway  = 'faraday.inria.fr'
 default_slicename  = 'inria_sopnode'
@@ -206,7 +206,7 @@ Nota: If you are done with the demo, do not forget to clean up the demo:
         else:
             scheduler.keep_only_between(ends=j_start_demo + j_init_quectels + j_init_qhats, keep_ends=True)
         if not load_images:
-            scheduler.bypass_and_remove([j_load_image])
+            scheduler.bypass_and_remove(j_load_image)
 #TT see how to add scheduler.bypass_and_remove(j_init_quectels)
             purpose += f" (no image loaded)"
             if quectel_nodes and j_prepare_quectels in scheduler.jobs:
@@ -393,10 +393,10 @@ def main():
 
     args = parser.parse_args()
 
-    if not args.load_images and not args.start and not args.stop:
-        print("USAGE: demo-oai.py: choose one of the following options: -l or --start or --stop")
-        exit (1)
-        
+#    if not args.load_images and not args.start and not args.stop:
+#        print("USAGE: demo-oai.py: choose one of the following options: -l or --start or --stop")
+#        exit (1)
+
     print("Running the MEP demo version on following FIT nodes:")
     print(f"\t{r2lab_hostname(args.core)} for CN and CM containers")
     print(f"\t{r2lab_hostname(args.ran)} for gNB, flexric, rabbitmq and rnis-xapp containers")

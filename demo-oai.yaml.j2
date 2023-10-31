@@ -66,20 +66,22 @@ jobs:
     commands:
       - type: Run
         command: >
-  {% if rru == "b210" %}    
     {% if nodes['ran'] == "pc01" %}
           rhubarbe pdu on usrp01; sleep 20;
     {% elif nodes['ran'] == "pc02" %}
           rhubarbe pdu on usrp02; sleep 20;
     {% else %}
+      {% if rru == "b210" %}    
           rhubarbe wait {{nodes['ran']}};
           rhubarbe usrpon {{nodes['ran']}}
-    {% endif %}
-  {% else %}
-  {% if rru != "rfsim" %}
+      {% else %}
+        {% if rru == "rfsim" %}
+          rhubarbe wait {{nodes['ran']}}
+        {% else %}
           rhubarbe-pdu on {{rru}}
-  {% endif %}
-  {% endif %}
+        {% endif %}
+      {% endif %}
+    {% endif %}
 
 
   {% if quectel_dict %}
@@ -177,7 +179,7 @@ jobs:
 
   - id: init-ran
     required:
-      - load-image
+      - prepare-ran
     node: ran_node
     critical: True
     verbose: {{verbose}}
@@ -208,7 +210,7 @@ jobs:
       Deploy core-network and cm docker containers
     commands:
       - type: RunScript
-        command: core-network.sh start
+        command: core-network.sh start {{rru}}
  
   - id: start-ran
     required: init-ran
@@ -219,7 +221,7 @@ jobs:
       Deploy ran container and start oai-gnb, oai-flexric, rabbitmq and then, rnis-xapp
     commands:
       - type: RunScript
-        command: ran.sh start
+        command: ran.sh start {{rru}}
  
   - id: start-mep
     required: init-mep
@@ -331,7 +333,7 @@ jobs:
       Delete core network and cm and then remove core-network container
     commands:
       - type: RunScript
-        command: core-network.sh stop
+        command: core-network.sh stop {{rru}}
  
   - id: stop-ran
     required: start-ran
@@ -353,7 +355,7 @@ jobs:
       Delete oai-mep and oai-rnis and then remove mep container
     commands:
       - type: Run
-        command: mep.sh stop
+        command: mep.sh stop {{rru}}
 
 
   {% for n, cmd in wait1_dict.items() %}
