@@ -344,7 +344,7 @@ jobs:
       Delete oai-gnb, oai-flexric, rabbitmq and rnis-xapp and then remove ran container and 
     commands:
       - type: RunScript
-        command: ran.sh stop
+        command: ran.sh stop {{rru}}
  
   - id: stop-mep
     required: start-mep
@@ -355,7 +355,7 @@ jobs:
       Delete oai-mep and oai-rnis and then remove mep container
     commands:
       - type: Run
-        command: mep.sh stop {{rru}}
+        command: mep.sh stop
 
 
   {% for n, cmd in wait1_dict.items() %}
