@@ -30,7 +30,7 @@ from r2lab import r2lab_hostname, ListOfChoices, ListOfChoicesNullReset, find_lo
 ##########################################################################################
 
 # Default R2lab FIT node images
-default_image = 'u20.04-docker-images-perf' # u20.04-perf r2lab image + apt upgrade + docker install + docker pull of all oai/rnis images
+default_image = 'u20.04-perf-uhd3.15-docker-images' # u20.04-perf r2lab image + apt upgrade + docker install + docker pull of all oai/rnis images + uhd v3.15
 #default_quectel_image = 'quectel-mbim'
 default_quectel_image = 'quectel-mbim-single-dnn'
 
