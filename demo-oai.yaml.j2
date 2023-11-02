@@ -104,7 +104,7 @@ jobs:
         command: >
           rhubarbe usrpon {%for n in quectel_dict.keys()%}{{n}} {% endfor %}
       - type: Run
-        command: sleep 45
+        command: sleep 60
   {% endif %}
 
   {% if qhat_dict %}
