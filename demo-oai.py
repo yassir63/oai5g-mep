@@ -39,9 +39,6 @@ default_core = 1
 default_ran = 2
 default_mep = 3
 
-# Default RRU
-default_rru = "rfsim"
-
 # Default Phones used as UE
 default_phones = []
 
@@ -54,11 +51,11 @@ default_qhat_nodes = []
 # Default RRU used for the scenario.
 # Currently, following possible options:
 # ['b210', 'n300', 'n320', 'jaguar', 'panther', 'rfsim'] 
-default_rru = 'b210'
+default_rru = 'rfsim'
 
 default_gateway  = 'faraday.inria.fr'
 default_slicename  = 'inria_sopnode'
-default_namespace = 'oai5g'
+
 
 default_regcred_name = 'r2labuser'
 default_regcred_password = 'r2labuser-pwd'

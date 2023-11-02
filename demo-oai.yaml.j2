@@ -187,7 +187,7 @@ jobs:
       Clone blueprint, configure IP forwarding for ran host and launch containers
     commands:
       - type: RunScript
-        command: ran.sh init
+        command: ran.sh init {{nodes['core']}}
 
   - id: init-mep
     required:
@@ -199,10 +199,11 @@ jobs:
        Clone blueprint and configure IP forwarding for mep host
     commands:
       - type: RunScript
-        command: mep.sh init
+        command: mep.sh init {{nodes['core']}} {{nodes['ran']}}
 
   - id: start-core
-    required: init-core
+    required:
+      - init-core
     node: core_node
     critical: True
     verbose: {{verbose}}
@@ -213,7 +214,9 @@ jobs:
         command: core-network.sh start {{rru}}
  
   - id: start-ran
-    required: init-ran
+    required:
+      - init-ran
+      - start-core
     node: ran_node
     critical: True
     verbose: {{verbose}}
@@ -224,7 +227,9 @@ jobs:
         command: ran.sh start {{rru}}
  
   - id: start-mep
-    required: init-mep
+    required:
+      - init-mep
+      - start-ran
     node: mep_node
     critical: True
     verbose: {{verbose}}
@@ -354,7 +359,7 @@ jobs:
     label: >
       Delete oai-mep and oai-rnis and then remove mep container
     commands:
-      - type: Run
+      - type: RunScript
         command: mep.sh stop
 
 
