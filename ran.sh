@@ -20,8 +20,8 @@ function init() {
 	fit*) suffix_core=${nodecore#*fit} ;;
 	*) echo "init: unknown core node $nodecore" ;;
     esac
-    echo "ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" dev control"
-    ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" dev control
+    echo "ip route replace 192.168.70.0/24 via 192.168.3.$suffix_core"
+    ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" 
 }
 
 

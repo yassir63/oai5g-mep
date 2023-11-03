@@ -12,18 +12,6 @@ function init() {
     echo "init: Setting up core-network IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
     iptables -P FORWARD ACCEPT
-    
-#    ip route replace 192.168.70.164 via 192.168.3.2 # reach oai-flexric via gNB host
-#    ip route replace 192.168.70.165 via 192.168.3.2 # reach oai-rnis-xapp via gNB host
-#    ip route replace 192.168.70.166 via 192.168.3.2 # reach rabbitmq via gNB host
-
-#    ip route replace 192.168.70.160 via 192.168.3.2 # reach oai-gnb via gNB host
-#    ip route replace 192.168.72.160 via 192.168.3.2 # reach oai-gnb via gNB host
-
-#    ip route replace 192.168.70.169 via 192.168.3.5 # reach oai-rnis via mep host
-
-#    ip route replace 192.168.70.2 via 192.168.3.5   # reach oai-mep-gateway via mep host
-#    ip route replace 192.168.70.4 via 192.168.3.5   # reach oai-mep-gateway-db via mep host
 }
 
 
@@ -49,6 +37,22 @@ function start() {
     echo "Sleep 10s and check if cm is healthy"
     sleep 10
     docker compose -f docker-compose/docker-compose-cm.yaml ps -a
+}
+
+
+function logs() {
+
+    DATE=`date +"%m.%dT%H.%M"`
+    DIR="/tmp/oaistats.cn.$DATE"
+    docker logs oai-amf > $DIR/amf.log 2>&1
+    docker logs oai-smf > $DIR/smf.log 2>&1
+    docker logs oai-nrf > $DIR/nrf.log 2>&1
+    docker logs oai-vpp-upf > $DIR/vpp-upf.log 2>&1
+    docker logs oai-udr > $DIR/udr.log 2>&1
+    docker logs oai-udm > $DIR/udm.log 2>&1
+    docker logs oai-ausf > $DIR/ausf.log 2>&1
+    docker logs oai-cm > $DIR/cm.log 2>&1
+    tar cfz $DIR.tgz $DIR
 }
 
 

@@ -104,6 +104,13 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
     quectel_dict = dict((n, r2lab_hostname(n)) for n in quectel_nodes)
     qhat_dict = dict((n, "qhat0"+n) for n in qhat_nodes)
 
+    if ran.isnumeric():
+        ran_host=r2lab_hostname(ran)
+        nodes_str=f"{core} {ran} {mep}"
+    else:
+        ran_host=ran
+        nodes_str=f"{core} {mep}"
+
     INCLUDES = [find_local_embedded_script(x) for x in (
       "r2labutils.sh", "nodes.sh", "faraday.sh"
     )]
@@ -113,10 +120,10 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
         auto_start=auto_start,
         nodes=dict(
             core=r2lab_hostname(core),
-            ran=r2lab_hostname(ran),
+            ran=ran_host,
             mep=r2lab_hostname(mep),
         ),
-        nodes_str=f"{core} {ran} {mep}",
+        nodes_str=nodes_str,
         phones=phones,
         wait1_dict=wait1_dict,
         wait2_dict=wait2_dict,
@@ -335,13 +342,13 @@ def main():
     parser.add_argument("--quectel-image", dest="quectel_image",
                         default=default_quectel_image)
 
-    parser.add_argument("--core", default=default_core,
+    parser.add_argument("--core", default=default_core, type=int, choices=range(1,38),
                         help="id of the FIT node that will run the core container")
 
     parser.add_argument("--ran", default=default_ran,
-                        help="id of the FIT node that will run the ran container")
+                        help="id of the FIT node that will run the ran container or pc01 or pc02")
 
-    parser.add_argument("--mep", default=default_mep,
+    parser.add_argument("--mep", default=default_mep, type=int, choices=range(1,38),
                         help="id of the FIT node that will run the mep container")
 
     parser.add_argument(
@@ -390,13 +397,23 @@ def main():
 
     args = parser.parse_args()
 
-#    if not args.load_images and not args.start and not args.stop:
-#        print("USAGE: demo-oai.py: choose one of the following options: -l or --start or --stop")
-#        exit (1)
+    if args.ran != "pc01" and args.ran != "pc02":
+        if args.ran.isnumeric():
+            id = int(args.ran)
+            if id < 1 or id > 37:
+                print(f"USAGE: demo-oai.py: unvalid FIT id for ran: {id}")
+                exit (1)
+            else:
+                ran_host=r2lab_hostname(args.ran)
+        else:    
+            print(f"USAGE: demo-oai.py: unvalid FIT id for ran: {args.ran}")
+            exit (1)
+    else:
+        ran_host=args.ran
 
     print("Running the MEP demo version on following FIT nodes:")
     print(f"\t{r2lab_hostname(args.core)} for CN and CM containers")
-    print(f"\t{r2lab_hostname(args.ran)} for gNB, flexric, rabbitmq and rnis-xapp containers")
+    print(f"\t{ran_host} for gNB, flexric, rabbitmq and rnis-xapp containers")
     print(f"\t{r2lab_hostname(args.mep)} for MEP and rnis containers")
             
     if args.quectel_nodes:

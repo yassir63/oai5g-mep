@@ -33,6 +33,8 @@ function init() {
     case $noderan in
 	fit0*) suffix_ran=${noderan#*fit0} ;;
 	fit*) suffix_ran=${noderan#*fit} ;;
+	pc01) suffix_ran="61" ;;
+	pc02) suffix_ran="62" ;;
 	*) echo "init: unknown ran node $noderan" ;;
     esac
     echo "ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" dev control"

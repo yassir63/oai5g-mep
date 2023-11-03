@@ -2,8 +2,8 @@
 #
 # {{gateway}} - typically 'faraday.inria.fr'
 # {{auto_start}} - typically 'True' or 'False'
-# {{nodes}} - typically {'core': 'fit01', 'ran': 'fit02', 'mep' : 'fit03'}
-# {{nodes_str}} - typically '1 2 3'
+# {{nodes}} - typically {'core': 'fit01', 'ran': 'fit02', 'mep' : 'fit03'} or {'core': 'fit01', 'ran': 'pc01', 'mep' : 'fit03'}
+# {{nodes_str}} - typically '1 2 3' or '1 3'
 # {{phones}} - typically [1, 2]
 # {{wait1_dict}} - typically  {1: "echo 'wait for 55s for eNB to start up before waking up phone1'; sleep 55"}
 # {{wait2_dict}} - typically {1: "echo 'wait for 15s for phone1 before starting tests'; sleep 15"}
@@ -67,9 +67,9 @@ jobs:
       - type: Run
         command: >
     {% if nodes['ran'] == "pc01" %}
-          rhubarbe pdu on usrp01; sleep 20;
+          rhubarbe pdu on pc01; sleep 30; rhubarbe pdu on usrp01; sleep 20
     {% elif nodes['ran'] == "pc02" %}
-          rhubarbe pdu on usrp02; sleep 20;
+          rhubarbe pdu on pc02; sleep 30; rhubarbe pdu on usrp02; sleep 20
     {% else %}
       {% if rru == "b210" %}    
           rhubarbe wait {{nodes['ran']}};
