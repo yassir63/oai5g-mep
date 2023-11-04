@@ -1,6 +1,7 @@
 # expected jinja variables, set by calling python script:
 #
 # {{gateway}} - typically 'faraday.inria.fr'
+# {{logs}} - typically 'True' or 'False'
 # {{auto_start}} - typically 'True' or 'False'
 # {{nodes}} - typically {'core': 'fit01', 'ran': 'fit02', 'mep' : 'fit03'} or {'core': 'fit01', 'ran': 'pc01', 'mep' : 'fit03'}
 # {{nodes_str}} - typically '1 2 3' or '1 3'
@@ -338,7 +339,13 @@ jobs:
       Delete core network and cm and then remove core-network container
     commands:
       - type: RunScript
-        command: core-network.sh stop {{rru}}
+        command: core-network.sh stop {{rru}} {{logs}}
+      {% if logs == 'True' %}
+      - type: Pull
+        remotepaths: "/tmp/oai5g-stats-core.tgz"
+        localpath: "./STATS/"
+      {% endif %}
+
  
   - id: stop-ran
     required: start-ran
@@ -349,8 +356,14 @@ jobs:
       Delete oai-gnb, oai-flexric, rabbitmq and rnis-xapp and then remove ran container and 
     commands:
       - type: RunScript
-        command: ran.sh stop {{rru}}
- 
+        command: ran.sh stop {{rru}} {{logs}}
+      {% if logs == 'True' %}
+      - type: Pull
+        remotepaths: "/tmp/oai5g-stats-ran.tgz"
+        localpath: "./STATS/"
+      {% endif %}
+
+
   - id: stop-mep
     required: start-mep
     node: mep_node
@@ -360,7 +373,12 @@ jobs:
       Delete oai-mep and oai-rnis and then remove mep container
     commands:
       - type: RunScript
-        command: mep.sh stop
+        command: mep.sh stop {{logs}}
+      {% if logs == 'True' %}
+      - type: Pull
+        remotepaths: "/tmp/oai5g-stats-mep.tgz"
+        localpath: "./STATS/"
+      {% endif %}
 
 
   {% for n, cmd in wait1_dict.items() %}

@@ -62,7 +62,24 @@ function start() {
 
 
 function stop() {
+    logs=$1
+    shift
 
+   if [[ "$logs" = "True" ]]; then
+	echo "stop: retrieving mep containers logs"
+	DATE=`date +"%y.%m.%dT%H.%M"`
+	LOGS="oai5g-stats-mep"
+	DIR="/tmp/$LOGS"
+	rm -rf $DIR; mkdir $DIR
+	touch $DIR/$DATE
+	docker logs oai-rnis > $DIR/oai-rnis.log 2>&1
+	docker logs oai-mep-registry > $DIR/oai-mep-registry.log 2>&1
+	docker logs oai-mep-gateway > $DIR/oai-mep-gateway.log 2>&1
+	docker logs oai-mep-gateway-db > $DIR/oai-mep-gateway-db.log 2>&1
+	cd /tmp
+	tar cfz $LOGS.tgz $LOGS
+    fi
+    
     cd "$PATH_MEP"
     echo "stop: Remove mep container"
     docker compose -f docker-compose/docker-compose-mep.yaml down -t2

@@ -40,24 +40,10 @@ function start() {
 }
 
 
-function logs() {
-
-    DATE=`date +"%m.%dT%H.%M"`
-    DIR="/tmp/oaistats.cn.$DATE"
-    docker logs oai-amf > $DIR/amf.log 2>&1
-    docker logs oai-smf > $DIR/smf.log 2>&1
-    docker logs oai-nrf > $DIR/nrf.log 2>&1
-    docker logs oai-vpp-upf > $DIR/vpp-upf.log 2>&1
-    docker logs oai-udr > $DIR/udr.log 2>&1
-    docker logs oai-udm > $DIR/udm.log 2>&1
-    docker logs oai-ausf > $DIR/ausf.log 2>&1
-    docker logs oai-cm > $DIR/cm.log 2>&1
-    tar cfz $DIR.tgz $DIR
-}
-
-
 function stop() {
     rru=$1
+    shift
+    logs=$1
     shift
 
     # Use the right Docker compose file
@@ -65,6 +51,25 @@ function stop() {
 	CORE_COMPOSE_FILE="docker-compose/docker-compose-core-network.yaml"
     elif [[ "$rru" = "b210" ]]; then
 	CORE_COMPOSE_FILE="docker-compose/docker-compose-core-network-r2lab.yaml"
+    fi
+
+    if [[ "$logs" = "True" ]]; then
+	echo "stop: retrieving core containers logs"
+	DATE=`date +"%y.%m.%dT%H.%M"`
+	LOGS="oai5g-stats-core"
+	DIR="/tmp/$LOGS"
+	rm -rf $DIR; mkdir $DIR
+	touch $DIR/$DATE
+	docker logs oai-amf > $DIR/amf.log 2>&1
+	docker logs oai-smf > $DIR/smf.log 2>&1
+	docker logs oai-nrf > $DIR/nrf.log 2>&1
+	docker logs oai-vpp-upf > $DIR/vpp-upf.log 2>&1
+	docker logs oai-udr > $DIR/udr.log 2>&1
+	docker logs oai-udm > $DIR/udm.log 2>&1
+	docker logs oai-ausf > $DIR/ausf.log 2>&1
+	docker logs oai-cm > $DIR/cm.log 2>&1
+	cd /tmp
+	tar cfz $LOGS.tgz $LOGS
     fi
 
     cd "$PATH_MEP"

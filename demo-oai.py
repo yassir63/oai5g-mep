@@ -62,7 +62,7 @@ default_regcred_password = 'r2labuser-pwd'
 default_regcred_email = 'r2labuser@turletti.com'
 
 
-def run(*, mode, gateway, slicename, auto_start, load_images, 
+def run(*, mode, gateway, slicename, logs, auto_start, load_images, 
         core, ran, mep, phones, quectel_nodes, qhat_nodes, rru, 
         regcred_name, regcred_password, regcred_email,
         image, quectel_image, verbose, dry_run):
@@ -71,6 +71,7 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
 
     Arguments:
         slicename: the Unix login name (slice name) to enter the gateway
+        logs: logs files will be retrieved 
         auto_start: pods will be launched
         load_images: FIT images will be deployed
         core: node name in which CN and CM will be deployed
@@ -117,6 +118,7 @@ def run(*, mode, gateway, slicename, auto_start, load_images,
 
     jinja_variables = dict(
         gateway=gateway,
+        logs=logs,
         auto_start=auto_start,
         nodes=dict(
             core=r2lab_hostname(core),
@@ -302,7 +304,8 @@ def main():
     """
     CLI frontend
     """
-    
+
+    logs_str = "False"
     parser = ArgumentParser(usage=HELP, formatter_class=ArgumentDefaultsHelpFormatter)
 
     parser.add_argument(
@@ -350,6 +353,9 @@ def main():
 
     parser.add_argument("--mep", default=default_mep, type=int, choices=range(1,38),
                         help="id of the FIT node that will run the mep container")
+    parser.add_argument("-L", "--logs", default=False,
+                        action='store_true', dest='logs',
+                        help="retrieve logs files")
 
     parser.add_argument(
         "-s", "--slicename", default=default_slicename,
@@ -441,6 +447,11 @@ def main():
     elif args.stop:
         print(f"delete all containers")
         mode = "stop"
+        if args.logs:
+            print("retrieve logs files from containers")
+            logs_str='True'
+        else:
+            print("without getting logs files from containers")
     elif args.cleanup:
         print(f"**** swith off FIT nodes")
         mode = "cleanup"
@@ -460,7 +471,8 @@ def main():
         mode = "run"
 
     run(mode=mode, gateway=default_gateway, slicename=args.slicename,
-        auto_start=args.auto_start, load_images=args.load_images,
+        logs=logs_str, auto_start=args.auto_start,
+        load_images=args.load_images,
         core=args.core, ran=args.ran, mep=args.mep,
         phones=args.phones, quectel_nodes=args.quectel_nodes,
         qhat_nodes=args.qhat_nodes, rru=args.rru,

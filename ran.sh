@@ -59,6 +59,8 @@ function start-nr-ue() {
 function stop() {
     rru=$1
     shift
+    logs=$1
+    shift
 
     # Use the right Docker compose file
     if [[ "$rru" = "rfsim" ]]; then
@@ -66,7 +68,23 @@ function stop() {
     elif [[ "$rru" = "b210" ]]; then
 	RAN_COMPOSE_FILE="docker-compose/docker-compose-ran-r2lab.yaml"
     fi
-  
+
+   if [[ "$logs" = "True" ]]; then
+	echo "stop: retrieving ran containers logs"
+	DATE=`date +"%y.%m.%dT%H.%M"`
+	LOGS="oai5g-stats-ran"
+	DIR="/tmp/$LOGS"
+	rm -rf $DIR; mkdir $DIR
+	touch $DIR/$DATE
+	docker logs rfsim5g-oai-nr-ue > $DIR/rfsim5g-oai-nr-ue.log 2>&1
+	docker logs oai-rnis-xapp > $DIR/oai-rnis-xapp.log 2>&1
+	docker logs oai-oai-flexric > $DIR/oai-flexric.log 2>&1
+	docker logs rabbitmq-broker > $DIR/rabbitmq-broker.log 2>&1
+	docker logs rfsim5g-oai-gnb > $DIR/rfsim5g-oai-gnb.log 2>&1
+	cd /tmp
+	tar cfz $LOGS.tgz $LOGS
+    fi
+    
     cd "$PATH_MEP"
     echo "stop: Remove ran container"
     docker compose -f "$RAN_COMPOSE_FILE" down -t2
