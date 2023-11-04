@@ -447,8 +447,8 @@ jobs:
           rhubarbe pdu off pc02;
     {% else %}
           rhubarbe usrpoff {{nodes['ran']}};
-          rhubarbe off {{nodes_str}}
     {% endif %}
+          rhubarbe off {{nodes_str}}
   {% else %}
     {% if rru != "rfsim" %}
           rhubarbe-pdu off {{rru}};
