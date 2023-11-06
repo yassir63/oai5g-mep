@@ -14,7 +14,7 @@ Before you can run the script in this directory, you need to install its depende
 ### Basic usage
 
 
-The mental model is we are dealing with essentially three states:
+The mental model is that we are dealing with essentially three states:
 
 * (0) initially, the FIT/R2lab nodes are down;
 * (1) after setup, 3 FIT/R2lab node are loaded with the proper image to deploy the blueprint, and depending on the UEs selected more FIT nodes can be loaded with Quectel-specific UE images;
@@ -42,7 +42,7 @@ The **demo-rnis.py** nepi-ng script has various options to change default parame
 
 The main options are:
 
-  * `--a` to not deploy the docker containers launch the OAI5G pods by default.
+  * `-a` to not deploy the docker containers launch the OAI5G pods by default.
   * `-s slicename` to provide the slicename that you used to book the platform, which by default is *`inria_sopnode`*.
   * `--ran mode` use this option to select a specific node to run the gNB. It is by default fit02 but you can for instance use the new miniPC r2lab nodes *pc01* and *pc02* to run the gNB with B210 USRP device. E.g., `--ran pc01` to select miniPC node *pc01* or `--ran 10` tu use FIT node *fit10*.
   * `-R rfsim` or `-R b210` to select simulation mode or USRP B210-based gNB; by default the escript runs in simulation mode.
@@ -161,6 +161,7 @@ Note that we don't use "--start" option in this case as this option skips the re
 Now, retrieve the IP addresses of all containers created in the different hosts:
 
 - on the core-network host:
+
 ``` bash
 root@fit01:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
 
@@ -178,6 +179,7 @@ root@fit01:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Network
 ```
 
 - on the ran host:
+
 ``` bash
 root@fit02:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
 
@@ -189,6 +191,7 @@ root@fit02:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Network
 ```
 
 - and finally, on mep host:
+
 ``` bash
 root@fit03:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
 
@@ -198,7 +201,7 @@ root@fit03:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Network
 192.168.90.169 	 oai-rnis
 ```
 
-Now fetch what RAN KPIs are available by running on the mep host:
+Now, you can fetch what RAN KPIs are available by running on the mep host:
 
 ``` bash
 root@fit03:~# curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas' -H 'accept: application/json'
@@ -314,7 +317,7 @@ root@fit03:~# curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas' -H 
 
 ```
 
-You can also try the xapp example application provided in the Eurecom MEP blueprint to track the KPIs in real-time:
+You can also try running the xapp example application provided in the Eurecom MEP blueprint to track the KPIs in real-time:
 
 ``` bash
 root@fit03:~# cd blueprints/mep/
@@ -332,7 +335,7 @@ To clean up the demo, you should first delete all docker containers by running o
  
 `$ ./demo-rnis.py --stop` 
 
-Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, run on your laptop the following command:
+Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, just run on your laptop the following command:
 
 `$ ./demo-rnis.py --cleanup`
 
