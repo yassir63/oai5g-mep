@@ -1,15 +1,9 @@
-# OAI5G demo on SophiaNode
+# OAI5G MEC demo on SophiaNode/R2lab
 
-The *[demo-oai.py](./demo-oai.py)* script aims to demonstrate how to automate a OAI5G deployment on k8s worker nodes on the SophiaNode cluster with a FIT/R2lab node used as a k8s worker node to launch all the pods. 
+This *[demo-oai.py](./demo-oai.py)* script aims to deploy the [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) within the Sopnode/R2lab platform. 
 
-The RAN part is located in the R2lab testbed and may involve:
+The [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) developed by Eurecom has been modified to be able to run it using either the rfsim mode or B210-based gNB and UE nodes (such as Quectel nodes and 5G phones) located in the R2lab platform. In the original blueprint, all the CN, RAN and MEP docker containers were running on the same host. The modified blueprint available [in this r2lab branch](https://gitlab.eurecom.fr/turletti/blueprints/-/tree/r2lab?ref_type=heads) will deploy the core-networks, ran and mep docker compose files on three different FIT nodes. 
 
-* for gNB: [USRP B210] (https://www.ettus.com/all-products/ub210-kit/) connected to k8s worker FIT/R2lab nodes, AW2S RRU (such as [Jaguar MIMO 2x2 or Panther MIMO 4x4](https://www.aw2s.com/fr/solutions/rrh-rru/)) or USRP (such as [N300](https://www.ettus.com/all-products/USRP-N300/) or [N320](https://www.ettus.com/all-products/USRP-N320/)) connected with fibers to the *oai-gnb* pod running on a k8s worker server on the cluster;
-* for UE: [Quectel RM 500Q-GL](https://www.quectel.com/wp-content/uploads/2021/03/Quectel_RM500Q-GL_5G_Specification_V1.3.pdf) nodes attached to regular FIT/R2lab nodes in R2lab.
-
-
-**Acknowledgments:** _Support regarding configuration of the OAI5G functions has been provided by
-Sagar Arora at Eurecom <sagar.arora@eurecom.fr>._
 
 ### Software dependencies
 
@@ -19,87 +13,27 @@ Before you can run the script in this directory, you need to install its depende
 
 ### Basic usage
 
-All the forms of the script assume there is a deployed kubernetes cluster on the chosen master node, and that the provided slicename holds the current lease on FIT/R2lab.
 
 The mental model is we are dealing with essentially three states:
 
-* (0) initially, the k8s cluster is running and the FIT/R2lab nodes are down;
-* (1) after setup, one FIT/R2lab node is loaded with the proper image, and has joined the cluster;
-* (2) at that point one can use the `--start` option to start the system, which amounts to deploying pods on the k8s cluster;
+* (0) initially, the FIT/R2lab nodes are down;
+* (1) after setup, 3 FIT/R2lab node are loaded with the proper image to deploy the blueprint, and depending on the UEs selected more FIT nodes can be loaded with Quectel-specific UE images;
+* (2) at that point one can use the `--start` option to start the system, which amounts to deploying containers on FIT nodes;
 * (back to 1) it is point one can roll back and come back to the previous state, using the `--stop` option
 
 with none of the `--start/--stop/--cleanup` option the script goes from state 0 to (2),
-unless the `--no-auto-start` or `-k` option is given.
+unless the `--no-auto-start` option is given.
 
-run `demo-oai.py --help` for more details.
+Run `demo-oai.py --help` for more details.
 
 ### References
 
+* [OpenAirInterface MEC Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md)
 * [OAI 5G Core Network Deployment using Helm Charts](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_SA5G_HC.md)
 * [R2lab welcome page](https://r2lab.inria.fr/)
 * [R2lab run page (requires login)](https://r2lab.inria.fr/run.md)
 * [github repo for this page](https://github.com/sopnode/oai5g-rfsim)
 
-
-## The different steps...
-
-### Metal provisioning
-
-The **demo-oai.py** script can deploy (if not already done) a preconfigured Kubernetes (k8s) image on a FIT/R2lab node, which by default is *`fit01`*. 
-
-### Joining the k8s cluster
-Then the script will get the FIT/R2lab node to join the k8s master (*`sopnode-l1.inria.fr`* by default).
-
-
-### Configuration
-After that, the script will deploy OAI5G pods on the k8s cluster through the FIT/R2lab worker node. 
-
-First, it will copy on the worker node *fit01* the **demo-oai.sh** bash script and will configure few parameters (e.g., Core Network parameters, k8s namespace, nodes to run amf/spgwu/gnb functions, type of rru, etc.) within this script using the **configure-demo-oai.sh** script.
-
-```
-root@fit01# /root/configure-demo-oai.sh update
-```
-
-Then, the script will clone the OAI5G `oai-cn5g-fed` git repository on the FIT node *fit01*. To do it manually, you will have to run:
-
-```
-root@fit01# git clone -b r2lab-rrus https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed
-```
-Then it will apply different patches to configure the various OAI5G pods for the SopNode platform. To do it manually, you will have to run on *fit01* :
-
-```
-root@fit01# ./demo-oai.sh configure-all
-```
-
-These patches include configuration of Multus CNI interfaces specific to the SophiaNode platform. See the IP address configuration in the following figure modified from the [OAI 5G Core Network Deployment using Helm Charts](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_SA5G_HC.md) tutorial.
-
-![Multus CNI Configuration](./helm-chart-r2lab.png)
-
-### Deployment
-
-Finally, the **demo-oai.py** script will deploy the OAI5G pods on the k8s cluster. However, if you prefer to do it manually, you will have to do the following directly on *fit01* (or on another k8s worker node or on the k8s master *sopnode-l1*):
-
-
-```bash
-# Wait until all fit nodes are in READY state
-sopnode-l1$ kubectl wait node --for=condition=Ready fit01 
-
-# Run the OAI 5G Core pods
-sopnode-l1$ cd /home/oai/oai-cn5g-fed/charts/oai-5g-core/oai-5g-basic
-
-sopnode-l1$ helm --namespace=oai5g spray .
-
-# Wait until all 5G Core pods are READY
-sopnode-l1$ kubectl wait pod -noai5g --for=condition=Ready --all
-
-# Run the oai-gnb pod 
-sopnode-l1$ cd /home/oai/oai-cn5g-fed/charts/oai-5g-ran
-sopnode-l1$ helm --namespace=oai5g install oai-gnb oai-gnb/
-
-# Wait until the gNB pod is READY
-sopnode-l1$ kubectl wait pod -noai5g --for=condition=Ready --all
-
-```
 
 
 ### Customization
@@ -108,174 +42,298 @@ The **demo-oai.py** nepi-ng script has various options to change default paramet
 
 The main options are:
 
-  * `--no_auto_start` to not launch the OAI5G pods by default.
+  * `--a` to not deploy the docker containers launch the OAI5G pods by default.
   * `-s slicename` to provide the slicename that you used to book the platform, which by default is *`inria_sopnode`*.
-  * `-k` to not restart the k8s cluster when reconfiguring charts. This will avoid the time consuming leave-join steps for FIT worker nodes.
-  * as well as `-i imagename` to use an alternative image name - default is *`kubernetes`*.
-
-For instance, if your slicename is `inria_sc` and you have not yet loaded the k8s images on the FIT nodes, to run all the steps described above, you only have to run the following command on your laptop:
-
-```bash
-$ ./demo-oai.py -s inria_sc
-```
-
-Using the `-R` option, you can select the type of RRU to be used in the scenario. Currently on R2lab, the gnb can be either a USRP B210, a USRP N300, a USRP N320, a AW2S Jaguar, a AW2S Panther or you can choose to use instead the OAI5G RF simulator. Note that the gnb configuration file name is specified within the **demo-oai.sh** script and all the gnb configuration files are located in the **oai5g-rru/ran-config/conf/** directory. Gnb k8s charts are located in the **oai5g-rru/ran-config/charts/** directory.
-
-We added the two following options to be used only when the demo-oai.py script has already run at least once, i.e., when FIT nodes have joined the k8s cluster and OAI5G setup is ready for R2lab:
-
-* `--stop` to remove all OAI5G pods. 
-* `--start` to launch again all OAI5G pods with same configuration as before.
-
-The two above steps can also be done directly on *fit01* worker node:
-
-```
-root@fit01# ./demo-oai.sh stop
-root@fit01# ./demo-oai.sh start
-```
-
-Note that the *demo-oai.sh* script allows to start/stop specific part of OAI5G pods using the options *start-cn, start-gnb, start-ue, stop-cn, stop-gnb* and *stop-ue*.
-
-### Testing
-
-At the end of the demo, few logs of the oai-gnb pod should be visible on the terminal.
+  * `--ran mode` use this option to select a specific node to run the gNB. It is by default fit02 but you can for instance use the new miniPC r2lab nodes *pc01* and *pc02* to run the gNB with B210 USRP device. E.g., `--ran pc01` to select miniPC node *pc01* or `--ran 10` tu use FIT node *fit10*.
+  * `-R rfsim` or `-R b210` to select simulation mode or USRP B210-based gNB; by default the escript runs in simulation mode.
+  * `-L` to retrieve all container logs when running `--stop` option.
+  * `-P 1` and `-P 2` to select phone1 and phone2 5G UEs.
+  * `-Q X` to select FIT node with 5G Quectel UE; a specific r2lab image will be loaded in this case on the node; e.g. `-Q9` will use *fit09*.
+  * `-q X` to select Raspberry Pi4 with 5G Quectel UEs, e.g. `-q9` will use *qhat02*. 
 
 
-To check logs of the different pods, you need first to log on one of the k8s workers or master nodes, e.g., *fit01* or *sopnode-l1.inria.fr*.
+We added the two following options to be used only when the demo-oai.py script has already run at least once, i.e., when FIT nodes are up and ready to start the docker containers:
 
-For instance, to check the logs of the `oai-gnb` pod, run:
+* `--stop` to delete all docker containers. 
+* `--start` to launch (again) all docker containers with same configuration as before.
+
+
+### Testing: 
+
+
+First assume that you want to deploy the MEP blueprint with a gNB deployed on fit02 and with the Quectel fit09 selected as UE, you will run:
+
+
+`your-host$ ./demo-oai.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
+
+Then, when the script returns, you can check the containers created on the 3 physical hosts:
+
+- on the core-network host (fit01):
 
 ``` bash
+root@fit01:~# docker ps
 
-root@fit01# GNB_POD_NAME=$(kubectl -noai5g get pods -l app.kubernetes.io/name=oai-gnb -o jsonpath="{.items[0].metadata.name}")
-
-root@fit01# kubectl -noai5g logs $GNB_POD_NAME -c gnb
+CONTAINER ID   IMAGE                                     COMMAND                  CREATED         STATUS                   PORTS                          NAMES
+34dd4ce6fe75   oaisoftwarealliance/oai-cm:latest         "oai_cm"                 5 minutes ago   Up 5 minutes (healthy)                                  oai-cm
+0fe43bce5971   mongo:latest                              "docker-entrypoint.s…"   5 minutes ago   Up 5 minutes (healthy)   27017/tcp                      mongodb
+5420399fe1aa   oaisoftwarealliance/oai-smf:v1.5.0        "python3 /openair-sm…"   6 minutes ago   Up 6 minutes (healthy)   80/tcp, 8080/tcp, 8805/udp     oai-smf
+4efe8e9b2398   oaisoftwarealliance/oai-amf:v1.5.0        "python3 /openair-am…"   6 minutes ago   Up 6 minutes (healthy)   80/tcp, 9090/tcp, 38412/sctp   oai-amf
+cef4ce845368   oaisoftwarealliance/oai-ausf:v1.5.0       "python3 /openair-au…"   6 minutes ago   Up 6 minutes (healthy)   80/tcp                         oai-ausf
+0a16f3ed5d88   oaisoftwarealliance/oai-udm:v1.5.0        "python3 /openair-ud…"   6 minutes ago   Up 6 minutes (healthy)   80/tcp                         oai-udm
+1063fd213422   oaisoftwarealliance/oai-udr:v1.5.0        "python3 /openair-ud…"   6 minutes ago   Up 6 minutes (healthy)   80/tcp                         oai-udr
+83540a65cd8a   oaisoftwarealliance/oai-upf-vpp:v1.5.0    "/openair-upf/bin/en…"   6 minutes ago   Up 6 minutes (healthy)   2152/udp, 8085/udp             vpp-upf
+220bec835b76   mysql:8.0                                 "docker-entrypoint.s…"   6 minutes ago   Up 6 minutes (healthy)   3306/tcp, 33060/tcp            mysql
+1926edfd8a0e   oaisoftwarealliance/trf-gen-cn5g:latest   "/bin/bash -c ' ipta…"   6 minutes ago   Up 6 minutes (healthy)                                  oai-ext-dn
+f72e4bed1fd8   oaisoftwarealliance/oai-nrf:v1.5.0        "python3 /openair-nr…"   6 minutes ago   Up 6 minutes (healthy)   80/tcp, 9090/tcp               oai-nrf
 ```
 
-In case of RF simulation (RRU=rfsim), it is possible to run a ping test directly on *fit01*:
+- on the ran host (fit02):
 
-```
-root@fit01# ./demo-oai.sh run-ping
-ping --I oaitun_ue1 c4 google.fr
-PING google.fr (172.217.22.131) from 12.1.1.81 oaitun_ue1: 56(84) bytes of data.
-64 bytes from par21s12-in-f3.1e100.net (172.217.22.131): icmp_seq=1 ttl=112 time=37.3 ms
-64 bytes from par21s12-in-f3.1e100.net (172.217.22.131): icmp_seq=2 ttl=112 time=33.1 ms
-64 bytes from par21s12-in-f3.1e100.net (172.217.22.131): icmp_seq=3 ttl=112 time=25.5 ms
-64 bytes from par21s12-in-f3.1e100.net (172.217.22.131): icmp_seq=4 ttl=112 time=35.3 ms
+``` bash
+root@fit02:~# docker ps
 
---- google.fr ping statistics ---
-4 packets transmitted, 4 received, 0% packet loss, time 3004ms
-rtt min/avg/max/mdev = 25.581/32.838/37.361/4.453 ms
+CONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS                   PORTS                                                                                                                                                   NAMES
+48bf1b55db1e   oaisoftwarealliance/oai-flexric:1.0   "python3 -u rnisxapp…"   7 minutes ago   Up 7 minutes (healthy)   36421-36422/sctp                                                                                                                                        oai-rnis-xapp
+38eb39552d4e   oaisoftwarealliance/oai-flexric:1.0   "/usr/local/bin/near…"   7 minutes ago   Up 7 minutes (healthy)   36421-36422/sctp                                                                                                                                        oai-flexric
+e8568ea8ae26   rabbitmq:3-management-alpine          "docker-entrypoint.s…"   7 minutes ago   Up 7 minutes (healthy)   4369/tcp, 5671/tcp, 15671/tcp, 15691-15692/tcp, 25672/tcp, 0.0.0.0:32769->5672/tcp, :::32769->5672/tcp, 0.0.0.0:32768->15672/tcp, :::32768->15672/tcp   rabbitmq-broker
 ```
 
-Now, assume that you want to restart the demo with some changes in the CN chart configuration, and test it on another namespace, say *oai5g_v2*, the sequence of steps will be:
+- on the mep host (fit03):
+
+``` bash
+root@fit03:~# docker ps
+
+CONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS                     PORTS                                                                                                           NAMES
+97ef6555ca31   oaisoftwarealliance/oai-rnis:latest   "oai_rnis"               7 minutes ago   Up 7 minutes (healthy)                                                                                                                     oai-rnis
+401253b207be   oaisoftwarealliance/oai-mep:latest    "oai_mep"                7 minutes ago   Up 7 minutes (healthy)                                                                                                                     oai-mep-registry
+72fb320f9b15   kong:latest                           "/docker-entrypoint.…"   7 minutes ago   Up 7 minutes (unhealthy)   8000/tcp, 8443-8444/tcp, 0.0.0.0:32773->80/tcp, :::32773->80/tcp, 0.0.0.0:32772->8001/tcp, :::32772->8001/tcp   oai-mep-gateway
+eb69f6121e8b   postgres:9.6                          "docker-entrypoint.s…"   7 minutes ago   Up 7 minutes (healthy)     5432/tcp                                                                                                        oai-mep-gateway-db
+```
+
+Now, stop the demo and retrieve the logs for all docker containers:
+
+`./demo-oai.py -Rb210 --ran 2 -Q9 --stop -L`
+
+The following logs will be retrieved directly to your local machine:
+
+``` bash
+(r2lab) your-laptop:oai5g-rnis $ tar -ztvf STATS/oai5g-stats-core.tgz
+drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-core/
+-rw-r--r--  0 root   root    35757  6 nov 15:05 oai5g-stats-core/amf.log
+-rw-r--r--  0 root   root     8186  6 nov 15:05 oai5g-stats-core/udm.log
+-rw-r--r--  0 root   root       59  6 nov 15:05 oai5g-stats-core/vpp-upf.log
+-rw-r--r--  0 root   root    25271  6 nov 15:05 oai5g-stats-core/udr.log
+-rw-r--r--  0 root   root    62943  6 nov 15:05 oai5g-stats-core/nrf.log
+-rw-r--r--  0 root   root    56010  6 nov 15:05 oai5g-stats-core/smf.log
+-rw-r--r--  0 root   root        0  6 nov 15:05 oai5g-stats-core/23.11.06T15.05
+-rw-r--r--  0 root   root     8169  6 nov 15:05 oai5g-stats-core/ausf.log
+-rw-r--r--  0 root   root     8963  6 nov 15:05 oai5g-stats-core/cm.log
+(r2lab) your-laptop:oai5g-rnis $ tar -ztvf STATS/oai5g-stats-ran.tgz
+drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-ran/
+-rw-r--r--  0 root   root    59254  6 nov 15:05 oai5g-stats-ran/rfsim5g-oai-gnb.log
+-rw-r--r--  0 root   root       63  6 nov 15:05 oai5g-stats-ran/oai-flexric.log
+-rw-r--r--  0 root   root       65  6 nov 15:05 oai5g-stats-ran/rfsim5g-oai-nr-ue.log
+-rw-r--r--  0 root   root     3026  6 nov 15:05 oai5g-stats-ran/oai-rnis-xapp.log
+-rw-r--r--  0 root   root        0  6 nov 15:05 oai5g-stats-ran/23.11.06T15.05
+-rw-r--r--  0 root   root    19905  6 nov 15:05 oai5g-stats-ran/rabbitmq-broker.log
+(r2lab) your-laptop:oai5g-rnis $ tar -ztvf STATS/oai5g-stats-mep.tgz
+drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-mep/
+-rw-r--r--  0 root   root     3134  6 nov 15:05 oai5g-stats-mep/oai-mep-gateway.log
+-rw-r--r--  0 root   root     1392  6 nov 15:05 oai5g-stats-mep/oai-rnis.log
+-rw-r--r--  0 root   root        0  6 nov 15:05 oai5g-stats-mep/23.11.06T15.05
+-rw-r--r--  0 root   root     1946  6 nov 15:05 oai5g-stats-mep/oai-mep-gateway-db.log
+-rw-r--r--  0 root   root     1335  6 nov 15:05 oai5g-stats-mep/oai-mep-registry.log
+```
 
 
-* Stop the previous test ``` ./demo-oai.py --stop```
-* Make your changes on *fit01* in configuration file */root/demo-oai.sh*. (If the CN parameters you want to change are not in script */root/demo-oai.sh*, you can directly change chart file */root/oai-cn5g-fed/charts/oai-5g-core/oai-5g-basic/values.yaml*.) Then run on your laptop:
-* ``` ./demo-oai.py --namespace oai5g_v2 -k```
+Now, assume that you want to restart the demo in simulation mode, you will not have to reload R2lab images on the FIT nodes, just run:
 
-The latter command will take into account your changes to reconfigure the charts, and will then launch the OAI5G pods on the *oai5g_v2* namespace. The "-k" option is used to prevent FIT worker nodes to leave and join the k8s cluster, which takes about 2 minutes to complete...
 
-Note that we don't use "--start" option in this case as this option skips the reconfiguration step. 
+Then, start the UE sim on the ran host:
+
+``` bash
+root@fit02:~# cd blueprints/mep/
+root@fit02:~/blueprints/mep# docker compose -f docker-compose/docker-compose-ran.yaml up -d oai-nr-ue
+```
+
+Note that we don't use "--start" option in this case as this option skips the reconfiguration step.
+
+Now, retrieve the IP addresses of all containers created in the different hosts:
+
+- on the core-network host:
+``` bash
+root@fit01:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
+
+192.168.70.130 	 oai-nrf
+192.168.70.131 	 mysql
+192.168.70.132 	 oai-amf
+192.168.70.133 	 oai-smf
+192.168.70.136 	 oai-udr
+192.168.70.137 	 oai-udm
+192.168.70.138 	 oai-ausf
+192.168.70.167 	 mongodb
+192.168.70.168 	 oai-cm
+192.168.70.134 192.168.72.134 192.168.73.134 	 vpp-upf
+192.168.73.135 	 oai-ext-dnb
+```
+
+- on the ran host:
+``` bash
+root@fit02:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
+
+192.168.80.161 	 rfsim5g-oai-nr-ue
+192.168.80.164 	 oai-flexric
+192.168.80.165 	 oai-rnis-xapp
+192.168.80.166 	 rabbitmq-broker
+192.168.80.160 192.168.82.160 	 rfsim5g-oai-gnb
+```
+
+- and finally, on mep host:
+``` bash
+root@fit03:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
+
+192.168.90.2 	 oai-mep-gateway
+192.168.90.4 	 oai-mep-gateway-db
+192.168.90.5 	 oai-mep-registry
+192.168.90.169 	 oai-rnis
+```
+
+Now fetch what RAN KPIs are available by running on the mep host:
+
+``` bash
+root@fit03:~# curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas' -H 'accept: application/json'
+[
+  {
+    "KPIs": {
+      "bler_dl": {
+        "kpi": "bler_dl",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 5.605193857299268e-45
+      },
+      "bler_ul": {
+        "kpi": "bler_ul",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 5.605193857299268e-45
+      },
+      "cqi": {
+        "kpi": "cqi",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 0
+      },
+      "data_dl": {
+        "kpi": "data_dl",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 0
+      },
+      "data_ul": {
+        "kpi": "data_ul",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 0
+      },
+      "mcs_dl": {
+        "kpi": "mcs_dl",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 9
+      },
+      "mcs_ul": {
+        "kpi": "mcs_ul",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 9
+      },
+      "phr": {
+        "kpi": "phr",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": null,
+        "value": 0
+      },
+      "rsrp": {
+        "kpi": "rsrp",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": "dBm",
+        "value": -44
+      },
+      "snr": {
+        "kpi": "snr",
+        "labels": {
+          "amf_ue_ngap_id": 1
+        },
+        "source": "RAN",
+        "timestamp": 1699281114469113,
+        "unit": "dBm",
+        "value": 55.0
+      }
+    },
+    "ueIPs": [
+      "12.1.1.2"
+    ]
+  }
+]
+
+```
+
+You can also try the xapp example application provided in the Eurecom MEP blueprint to track the KPIs in real-time:
+
+``` bash
+root@fit03:~# cd blueprints/mep/
+root@fit03:~/blueprints/mep# python examples/example-mec-app.py
+{'AssociateId': ['12.1.1.2'], 'CellId': 0, 'Report': {'cqi': {'kpi': 'cqi', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'rsrp': {'kpi': 'rsrp', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': 'dBm', 'value': -44, 'labels': {'amf_ue_ngap_id': 1}}, 'mcs_ul': {'kpi': 'mcs_ul', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 9, 'labels': {'amf_ue_ngap_id': 1}}, 'mcs_dl': {'kpi': 'mcs_dl', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 9, 'labels': {'amf_ue_ngap_id': 1}}, 'phr': {'kpi': 'phr', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'bler_ul': {'kpi': 'bler_ul', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 5.605193857299268e-45, 'labels': {'amf_ue_ngap_id': 1}}, 'bler_dl': {'kpi': 'bler_dl', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 5.605193857299268e-45, 'labels': {'amf_ue_ngap_id': 1}}, 'data_ul': {'kpi': 'data_ul', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'data_dl': {'kpi': 'data_dl', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'snr': {'kpi': 'snr', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': 'dBm', 'value': 55.0, 'labels': {'amf_ue_ngap_id': 1}}}, 'TimeStamp': 1699281400.2334554}
+192.168.90.169 - - [06/Nov/2023 15:36:40] "POST /subscriptions/l2meas-200 HTTP/1.1" 200 -
+...
+```
+
 
 
 ### Cleanup
 
-To clean up the demo, you should first remove all OAI5G pods.
-
-For that, you can run on your laptop ``./demo-oai.py --stop`` or run the following command on the k8s cluster:
-
-```bash
-root@fit01# helm -n oai5g ls --short --all | xargs -L1 helm -n oai5g delete
-```
-
-Another possibility is to run on *fit01*:
-
-```
-root@fit01# ./demo-oai.sh stop
-```
-
-Then, to shutdown FIT/R2lab worker nodes and remove them from the k8s cluster, run on your laptop the following command:
-
-``` bash
-$ ./demo-oai.py --cleanup
-
-```
-
-
-
-### Scenario with an external Core Network
-
-Using the option --gnb-only, it is possible to run only the OAI5G RAN part, i.e., oai-gnb pod and UEs. 
-
-For instance, the following command will prepare a scenario from scratch to launch the USRP N300-based gNB with 2 Quectel-based UEs:
-
-```
-$ ./demo-oai.py -R n300 -Q7 -Q9 --gnb-only -a -l
-```
-
-Once the script terminates, you need to log on a k8s worker node and configure the following parameters in the script demo-oai.sh to match the external CN parameters:
-
-```
-    # Set the external AMF IP address
-    AMF_IP_ADDR="172.22.10.6" # external AMF IP address, e.g., "172.22.10.6"
-    # Set the local host network interface to reach AMF/UPF
-    IF_NAME_GNB_N2="ran" # Host network interface to reach AMF/UPF
-    # Set the local IP address of the latter network interface
-    IP_GNB_N2N3="10.0.20.243" # local IP to reach AMF/UPF, e.g., "10.0.20.243"
-    # Set the route to reach AMF/UPF
-    ROUTES_GNB_N2="[{'dst': '172.22.10.0/24','gw': '10.0.20.1'}]"
-```
-
-Let's assume that the oai-gnb pod can reach the external Core Network through a VPN client running on the server that hosts the oai-gnb pod, the VPN client will provide an IP address in 10.0.20.0/24. Let's also assume that the IP address of the AMF is *172.22.10.6*. 
-The following setup should be added on the latter server.
-
-```
-ip link add ran type veth peer name ran-int
-ip link set up ran
-ip link set up ran-int
-ip addr add 10.0.20.1/24 dev ran-int
-
-```
-
+To clean up the demo, you should first delete all docker containers by running on your laptop:
  
-At the Core Network side, you should configure the following parameters:
+`$ ./demo-oai.py --stop` 
 
- * MCC="001"
- * MNC="01"
- * DNN="oai.ipv4"
- * SST="1"
- * TAC="1"
- * FULL_KEY="fec86ba6eb707ed08905757b1bb44b8f"
- * OPC="C42449363BBAD02B66D16BC975D77CC1"
+Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, run on your laptop the following command:
 
-As precised in https://r2lab.inria.fr/hardware.md, the two Quectel UEs on fit07 and fit09 have IMSI: <001010000000003> and <001010000000004> respectively. So, to authenticate UEs in the CN, the mysql database should be configured with:
-
-```
-INSERT INTO `AuthenticationSubscription` (`ueid`, `authenticationMethod`, `encPermanentKey`, `protectionParameterId`, `sequenceNumber`, `authenticationManagementField`, `algorithmId`, `encOpcKey`, `encTopcKey`, `vectorGenerationInHss`, `n5gcAuthMethod`, `rgAuthenticationInd`, `supi`) VALUES
-('001010000000003', '5G_AKA', 'fec86ba6eb707ed08905757b1bb44b8f', 'fec86ba6eb707ed08905757b1bb44b8f', '{\"sqn\": \"000000000020\", \"sqnScheme\": \"NON_TIME_BASED\", \"\lastIndexes\": {\"ausf\": 0}}', '8000', 'milenage', 'C42449363BBAD02B66D16BC975D77CC1', NULL, NULL, NULL, NULL, '001010000000003');
-
-INSERT INTO `AuthenticationSubscription` (`ueid`, `authenticationMethod`, `encPermanentKey`, `protectionParameterId`, `sequenceNumber`, `authenticationManagementField`, `algorithmId`, `encOpcKey`, `encTopcKey`, `vectorGenerationInHss`, `n5gcAuthMethod`, `rgAuthenticationInd`, `supi`) VALUES
-('001010000000004', '5G_AKA', 'fec86ba6eb707ed08905757b1bb44b8f', 'fec86ba6eb707ed08905757b1bb44b8f', '{\"sqn\": \"000000000020\", \"sqnScheme\": \"NON_TIME_BASED\", \"\lastIndexes\": {\"ausf\": 0}}', '8000', 'milenage', 'C42449363BBAD02B66D16BC975D77CC1', NULL, NULL, NULL, NULL, '001010000000004');
-
-INSERT INTO `SessionManagementSubscriptionData` (`ueid`, `servingPlmnid`, `singleNssai`, `dnnConfigurations`) VALUES
-('001010000000003', '00101', '{\"sst\": 1, \"sd\": \"16777215\"}', '{\"oai.ipv4\":{\"pduSessionTypes\": { \"defaultSessionType\": \"IPV4\"},\"sscModes\": {\"defaultSscMode\": \"SSC_MODE_1\"},\"5gQosProfile\": {\"5qi\": 1,\"arp\":{\"priorityLevel\": 15, \"preemptCap\": \"NOT_PREEMPT\",\"preemptVuln\":\"PREEMPTABLE\"},\"priorityLevel\":1}, \"sessionAmbr\":{\"uplink\":\"1000Mbps\", \"\downlink\":\"1000Mbps\"}}}');
-
-INSERT INTO `SessionManagementSubscriptionData` (`ueid`, `servingPlmnid`, `singleNssai`, `dnnConfigurations`) VALUES
-('001010000000004', '00101', '{\"sst\": 1, \"sd\": \"16777215\"}', '{\"oai.ipv4\":{\"pduSessionTypes\": { \"defaultSessionType\": \"IPV4\"},\"sscModes\": {\"defaultSscMode\": \"SSC_MODE_1\"},\"5gQosProfile\": {\"5qi\": 1,\"arp\":{\"priorityLevel\": 15, \"preemptCap\": \"NOT_PREEMPT\",\"preemptVuln\":\"PREEMPTABLE\"}, \"priorityLevel\":1}, \"sessionAmbr\":{\"uplink\": \"1000Mbps\", \"\downlink\": \"1000Mbps\"}}}');
-
-```
-
-Before running the oai-gnb pod, you should check that you have the following route *172.22.10.0/24* set to reach the AMF.
-
-Then, log on the k8s worker node and start the oai-gnb pod:
-
-```
-root@fit01# ./demo-oai.sh start-gnb
-```
-
-### Snapshot of a running scenario with a jaguar-based gnb and 7 UEs including phone1 (Huawei P40)
-
-![snapshot with AMF/gNB logs and phone1 through Vysor](snapshot-phone1-6quectels.png "")
+`$ ./demo-oai.py --cleanup`
 
 

@@ -34,10 +34,10 @@ default_image = 'u20.04-perf-uhd3.15-docker-images' # u20.04-perf r2lab image + 
 #default_quectel_image = 'quectel-mbim'
 default_quectel_image = 'quectel-mbim-single-dnn'
 
-# Default FIT nodes used to launch core, ran and mep containers
-default_core = 1
-default_ran = 2
-default_mep = 3
+# Default nodes used to launch core, ran and mep containers
+default_core = 1 # integer representing the ID of a FIT node to run the CN containers
+default_ran = "2" # *string* representing either the ID of a fit node or "pc01" or "pc02" to run the RAN containers
+default_mep = 3 # integer representing the ID of a FIT node to run the MEP containers
 
 # Default Phones used as UE
 default_phones = []
