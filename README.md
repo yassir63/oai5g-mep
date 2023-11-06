@@ -1,6 +1,6 @@
 # OAI5G MEC demo on SophiaNode/R2lab
 
-This *[demo-oai.py](./demo-oai.py)* script aims to deploy the [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) within the Sopnode/R2lab platform. 
+The *[demo-rnis.py](./demo-rnis.py)* script aims to deploy the [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) within the Sopnode/R2lab platform. 
 
 The [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) developed by Eurecom has been modified to be able to run it using either the rfsim mode or B210-based gNB and UE nodes (such as Quectel nodes and 5G phones) located in the R2lab platform. In the original blueprint, all the CN, RAN and MEP docker containers were running on the same host. The modified blueprint available [in this r2lab branch](https://gitlab.eurecom.fr/turletti/blueprints/-/tree/r2lab?ref_type=heads) will deploy the core-networks, ran and mep docker compose files on three different FIT nodes. 
 
@@ -24,7 +24,7 @@ The mental model is we are dealing with essentially three states:
 with none of the `--start/--stop/--cleanup` option the script goes from state 0 to (2),
 unless the `--no-auto-start` option is given.
 
-Run `demo-oai.py --help` for more details.
+Run `demo-rnis.py --help` for more details.
 
 ### References
 
@@ -38,7 +38,7 @@ Run `demo-oai.py --help` for more details.
 
 ### Customization
 
-The **demo-oai.py** nepi-ng script has various options to change default parameters, run ``./demo-oai.py --help`` on your laptop to see all of them.
+The **demo-rnis.py** nepi-ng script has various options to change default parameters, run ``./demo-rnis.py --help`` on your laptop to see all of them.
 
 The main options are:
 
@@ -52,7 +52,7 @@ The main options are:
   * `-q X` to select Raspberry Pi4 with 5G Quectel UEs, e.g. `-q9` will use *qhat02*. 
 
 
-We added the two following options to be used only when the demo-oai.py script has already run at least once, i.e., when FIT nodes are up and ready to start the docker containers:
+We added the two following options to be used only when the demo-rnis.py script has already run at least once, i.e., when FIT nodes are up and ready to start the docker containers:
 
 * `--stop` to delete all docker containers. 
 * `--start` to launch (again) all docker containers with same configuration as before.
@@ -64,7 +64,7 @@ We added the two following options to be used only when the demo-oai.py script h
 First assume that you want to deploy the MEP blueprint with a gNB deployed on fit02 and with the Quectel fit09 selected as UE, you will run:
 
 
-`your-host$ ./demo-oai.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
+`your-host$ ./demo-rnis.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
 
 Then, when the script returns, you can check the containers created on the 3 physical hosts:
 
@@ -112,7 +112,7 @@ eb69f6121e8b   postgres:9.6                          "docker-entrypoint.s…"   
 
 Now, stop the demo and retrieve the logs for all docker containers:
 
-`./demo-oai.py -Rb210 --ran 2 -Q9 --stop -L`
+`./demo-rnis.py -Rb210 --ran 2 -Q9 --stop -L`
 
 The following logs will be retrieved directly to your local machine:
 
@@ -330,10 +330,10 @@ root@fit03:~/blueprints/mep# python examples/example-mec-app.py
 
 To clean up the demo, you should first delete all docker containers by running on your laptop:
  
-`$ ./demo-oai.py --stop` 
+`$ ./demo-rnis.py --stop` 
 
 Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, run on your laptop the following command:
 
-`$ ./demo-oai.py --cleanup`
+`$ ./demo-rnis.py --cleanup`
 
 
