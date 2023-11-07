@@ -149,12 +149,12 @@ def run(*, mode, gateway, slicename, logs, auto_start, load_images,
     # (*) then simplify/prune according to the mode
     # (*) only then add check_lease in all modes
 
-    loader = YamlLoader("demo-rnis.yaml.j2")
+    loader = YamlLoader("demo-mep.yaml.j2")
     nodes_map, jobs_map, scheduler = loader.load_with_maps(jinja_variables, save_intermediate = verbose)
     scheduler.verbose = verbose
     # debug: to visually inspect the full scenario
     if verbose:
-        complete_output = "demo-rnis-complete"
+        complete_output = "demo-mep-complete"
         print(f"Verbose: storing full scenario (before mode processing) in {complete_output}.svg")
         scheduler.export_as_svgfile(complete_output)
         print(f"Verbose: storing full scenario (before mode processing) in {complete_output}.png")
@@ -200,7 +200,7 @@ def run(*, mode, gateway, slicename, logs, auto_start, load_images,
         ko_message = f"Could not stop containers"
         ok_message = f"""No more containers running
 Nota: If you are done with the demo, do not forget to clean up the demo:
-\t ./demo-rnis.py --cleanup
+\t ./demo-mep.py --cleanup
 """
     elif mode == "start":
         scheduler.keep_only(j_start_demo + j_attach_quectels + j_attach_qhats + j_attach_phones + j_test_cx_phones)
@@ -240,7 +240,7 @@ Nota: If you are done with the demo, do not forget to clean up the demo:
             for job in j_start_demo:
                 scheduler.bypass_and_remove(job)
             purpose += f" (NO auto start)"
-            ok_message = f"RUN SetUp OK. You can now start the demo by running ./demo-rnis.py --start"
+            ok_message = f"RUN SetUp OK. You can now start the demo by running ./demo-mep.py --start"
         else:
             ok_message = f"RUN SetUp and demo started OK. You can now check the logs on the different containers."
 
@@ -259,7 +259,7 @@ Nota: If you are done with the demo, do not forget to clean up the demo:
 
 
     scheduler.check_cycles()
-    print(10*'*', purpose, "\n", 'See main scheduler in', scheduler.export_as_pngfile("demo-rnis-graph"))
+    print(10*'*', purpose, "\n", 'See main scheduler in', scheduler.export_as_pngfile("demo-mep-graph"))
 
     if verbose:
         scheduler.list()
@@ -407,12 +407,12 @@ def main():
         if args.ran.isnumeric():
             id = int(args.ran)
             if id < 1 or id > 37:
-                print(f"USAGE: demo-rnis.py: unvalid FIT id for ran: {id}")
+                print(f"USAGE: demo-mep.py: unvalid FIT id for ran: {id}")
                 exit (1)
             else:
                 ran_host=r2lab_hostname(args.ran)
         else:    
-            print(f"USAGE: demo-rnis.py: unvalid FIT id for ran: {args.ran}")
+            print(f"USAGE: demo-mep.py: unvalid FIT id for ran: {args.ran}")
             exit (1)
     else:
         ran_host=args.ran
