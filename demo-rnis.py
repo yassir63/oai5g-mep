@@ -259,7 +259,7 @@ Nota: If you are done with the demo, do not forget to clean up the demo:
 
 
     scheduler.check_cycles()
-    print(10*'*', purpose, "\n", 'See main scheduler in', scheduler.export_as_svgfile("demo-rnis-graph"))
+    print(10*'*', purpose, "\n", 'See main scheduler in', scheduler.export_as_pngfile("demo-rnis-graph"))
 
     if verbose:
         scheduler.list()
