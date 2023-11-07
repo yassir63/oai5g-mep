@@ -345,9 +345,9 @@ Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, just run on y
 `your-laptop:oai5g-rnis$ ./demo-mep.py --cleanup`
 
 
-### Extra
+### Extras
 
-You can have a look at the nepi-ng automata when using different script options by using the `- n` option. This will not run the script but will generate a graph showing the automata.
+You can have a look at the nepi-ng automata when using different script options by adding the `- n` flag. This will not run the script but will generate a graph showing the sequence of actions.
 
 ``` bash
 your-laptop:oai5g-rnis$ ./demo-mep.py -Rb210 --ran 2 -Q9 -l -n
