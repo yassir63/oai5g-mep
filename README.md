@@ -17,7 +17,7 @@ Before you can run the script in this directory, you need to install its depende
 The mental model is that we are dealing with essentially three states:
 
 * (0) initially, the FIT/R2lab nodes are down;
-* (1) after setup, 3 FIT/R2lab node are loaded with the proper image to deploy the blueprint, and depending on the UEs selected more FIT nodes can be loaded with Quectel-specific UE images;
+* (1) after setup, 3 FIT/R2lab node are loaded with the proper image to deploy the MEP blueprint, and depending on the UEs selected more FIT nodes can be loaded with Quectel-specific UE images;
 * (2) at that point one can use the `--start` option to start the system, which amounts to deploying containers on FIT nodes;
 * (back to 1) it is point one can roll back and come back to the previous state, using the `--stop` option
 
@@ -32,21 +32,21 @@ Run `demo-rnis.py --help` for more details.
 * [OAI 5G Core Network Deployment using Helm Charts](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_SA5G_HC.md)
 * [R2lab welcome page](https://r2lab.inria.fr/)
 * [R2lab run page (requires login)](https://r2lab.inria.fr/run.md)
-* [github repo for this page](https://github.com/sopnode/oai5g-rfsim)
+* [github repo for this page](https://github.com/sopnode/oai5g-rnis)
 
 
 
 ### Customization
 
-The **demo-rnis.py** nepi-ng script has various options to change default parameters, run ``./demo-rnis.py --help`` on your laptop to see all of them.
+The **demo-rnis.py** [nepi-ng script](https://nepi-ng.inria.fr/) has various options to change default parameters, run ``./demo-rnis.py --help`` on your laptop to see all of them.
 
 The main options are:
 
-  * `-a` to not deploy the docker containers launch the OAI5G pods by default.
+  * `-a` to not deploy the docker containers as it is done by default.
   * `-s slicename` to provide the slicename that you used to book the platform, which by default is *`inria_sopnode`*.
   * `--ran mode` use this option to select a specific node to run the gNB. It is by default fit02 but you can for instance use the new miniPC r2lab nodes *pc01* and *pc02* to run the gNB with B210 USRP device. E.g., `--ran pc01` to select miniPC node *pc01* or `--ran 10` tu use FIT node *fit10*.
   * `-R rfsim` or `-R b210` to select simulation mode or USRP B210-based gNB; by default the escript runs in simulation mode.
-  * `-L` to retrieve all container logs when running `--stop` option.
+  * `-L` to retrieve all container logs when using the `--stop` option.
   * `-P 1` and `-P 2` to select phone1 and phone2 5G UEs.
   * `-Q X` to select FIT node with 5G Quectel UE; a specific r2lab image will be loaded in this case on the node; e.g. `-Q9` will use *fit09*.
   * `-q X` to select Raspberry Pi4 with 5G Quectel UEs, e.g. `-q9` will use *qhat02*. 
@@ -61,17 +61,17 @@ We added the two following options to be used only when the demo-rnis.py script 
 ### Testing: 
 
 
-First assume that you want to deploy the MEP blueprint with a gNB deployed on fit02 and with the Quectel fit09 selected as UE, you will run:
+First assume that you want to deploy the MEP blueprint with a gNB deployed on fit02 and with fit09 with 5G Quectel device selected as UE, you will run:
 
 
-`your-host$ ./demo-rnis.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
+`your-laptop:oai5g-rnis$ ./demo-rnis.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
 
 Then, when the script returns, you can check the containers created on the 3 physical hosts:
 
 - on the core-network host (fit01):
 
 ``` bash
-root@fit01:~# docker ps
+root@fit01:$ docker ps
 
 CONTAINER ID   IMAGE                                     COMMAND                  CREATED         STATUS                   PORTS                          NAMES
 34dd4ce6fe75   oaisoftwarealliance/oai-cm:latest         "oai_cm"                 5 minutes ago   Up 5 minutes (healthy)                                  oai-cm
@@ -90,7 +90,7 @@ f72e4bed1fd8   oaisoftwarealliance/oai-nrf:v1.5.0        "python3 /openair-nr…
 - on the ran host (fit02):
 
 ``` bash
-root@fit02:~# docker ps
+root@fit02:$ docker ps
 
 CONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS                   PORTS                                                                                                                                                   NAMES
 48bf1b55db1e   oaisoftwarealliance/oai-flexric:1.0   "python3 -u rnisxapp…"   7 minutes ago   Up 7 minutes (healthy)   36421-36422/sctp                                                                                                                                        oai-rnis-xapp
@@ -101,7 +101,7 @@ e8568ea8ae26   rabbitmq:3-management-alpine          "docker-entrypoint.s…"   
 - on the mep host (fit03):
 
 ``` bash
-root@fit03:~# docker ps
+root@fit03:$ docker ps
 
 CONTAINER ID   IMAGE                                 COMMAND                  CREATED         STATUS                     PORTS                                                                                                           NAMES
 97ef6555ca31   oaisoftwarealliance/oai-rnis:latest   "oai_rnis"               7 minutes ago   Up 7 minutes (healthy)                                                                                                                     oai-rnis
@@ -112,12 +112,12 @@ eb69f6121e8b   postgres:9.6                          "docker-entrypoint.s…"   
 
 Now, stop the demo and retrieve the logs for all docker containers:
 
-`./demo-rnis.py -Rb210 --ran 2 -Q9 --stop -L`
+`your-laptop:oai5g-rnis$ ./demo-rnis.py -s your-slicename -Rb210 --ran 2 -Q9 --stop -L`
 
-The following logs will be retrieved directly to your local machine:
+The following logs will be retrieved automatically on your local machine:
 
 ``` bash
-(r2lab) your-laptop:oai5g-rnis $ tar -ztvf STATS/oai5g-stats-core.tgz
+your-laptop:oai5g-rnis$ tar -ztvf STATS/oai5g-stats-core.tgz
 drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-core/
 -rw-r--r--  0 root   root    35757  6 nov 15:05 oai5g-stats-core/amf.log
 -rw-r--r--  0 root   root     8186  6 nov 15:05 oai5g-stats-core/udm.log
@@ -128,7 +128,9 @@ drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-core/
 -rw-r--r--  0 root   root        0  6 nov 15:05 oai5g-stats-core/23.11.06T15.05
 -rw-r--r--  0 root   root     8169  6 nov 15:05 oai5g-stats-core/ausf.log
 -rw-r--r--  0 root   root     8963  6 nov 15:05 oai5g-stats-core/cm.log
-(r2lab) your-laptop:oai5g-rnis $ tar -ztvf STATS/oai5g-stats-ran.tgz
+
+your-laptop:oai5g-rnis$ tar -ztvf STATS/oai5g-stats-ran.tgz
+
 drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-ran/
 -rw-r--r--  0 root   root    59254  6 nov 15:05 oai5g-stats-ran/rfsim5g-oai-gnb.log
 -rw-r--r--  0 root   root       63  6 nov 15:05 oai5g-stats-ran/oai-flexric.log
@@ -136,7 +138,9 @@ drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-ran/
 -rw-r--r--  0 root   root     3026  6 nov 15:05 oai5g-stats-ran/oai-rnis-xapp.log
 -rw-r--r--  0 root   root        0  6 nov 15:05 oai5g-stats-ran/23.11.06T15.05
 -rw-r--r--  0 root   root    19905  6 nov 15:05 oai5g-stats-ran/rabbitmq-broker.log
-(r2lab) your-laptop:oai5g-rnis $ tar -ztvf STATS/oai5g-stats-mep.tgz
+
+your-laptop:oai5g-rnis$ tar -ztvf STATS/oai5g-stats-mep.tgz
+
 drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-mep/
 -rw-r--r--  0 root   root     3134  6 nov 15:05 oai5g-stats-mep/oai-mep-gateway.log
 -rw-r--r--  0 root   root     1392  6 nov 15:05 oai5g-stats-mep/oai-rnis.log
@@ -146,19 +150,20 @@ drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-mep/
 ```
 
 
-Now, assume that you want to restart the demo in simulation mode, you will not have to reload R2lab images on the FIT nodes, just run:
+Now, assume that you want to restart the demo in simulation mode, you will not have to reload R2lab images on the FIT nodes. No specific option is required as the simulation mode is used by default, just run:
 
+`your-laptop:oai5g-rnis$ ./demo-rnis.py -s your-slicename`
 
-Then, start the UE sim on the ran host:
+Then, start the simulated UE by running on the ran host:
 
 ``` bash
-root@fit02:~# cd blueprints/mep/
+root@fit02:$ cd blueprints/mep/
 root@fit02:~/blueprints/mep# docker compose -f docker-compose/docker-compose-ran.yaml up -d oai-nr-ue
 ```
 
 Note that we don't use "--start" option in this case as this option skips the reconfiguration step.
 
-Now, retrieve the IP addresses of all containers created in the different hosts:
+Now, retrieve the IP addresses of all containers created on the 3 hosts:
 
 - on the core-network host:
 
@@ -201,10 +206,10 @@ root@fit03:~/blueprints/mep# docker inspect -f '{{range .NetworkSettings.Network
 192.168.90.169 	 oai-rnis
 ```
 
-Now, you can fetch what RAN KPIs are available by running on the mep host:
+You can fetch what RAN KPIs are available by running on the mep host:
 
 ``` bash
-root@fit03:~# curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas' -H 'accept: application/json'
+root@fit03:$ curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas' -H 'accept: application/json'
 [
   {
     "KPIs": {
@@ -320,7 +325,7 @@ root@fit03:~# curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas' -H 
 You can also try running the xapp example application provided in the Eurecom MEP blueprint to track the KPIs in real-time:
 
 ``` bash
-root@fit03:~# cd blueprints/mep/
+root@fit03:$ cd blueprints/mep/
 root@fit03:~/blueprints/mep# python examples/example-mec-app.py
 {'AssociateId': ['12.1.1.2'], 'CellId': 0, 'Report': {'cqi': {'kpi': 'cqi', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'rsrp': {'kpi': 'rsrp', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': 'dBm', 'value': -44, 'labels': {'amf_ue_ngap_id': 1}}, 'mcs_ul': {'kpi': 'mcs_ul', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 9, 'labels': {'amf_ue_ngap_id': 1}}, 'mcs_dl': {'kpi': 'mcs_dl', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 9, 'labels': {'amf_ue_ngap_id': 1}}, 'phr': {'kpi': 'phr', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'bler_ul': {'kpi': 'bler_ul', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 5.605193857299268e-45, 'labels': {'amf_ue_ngap_id': 1}}, 'bler_dl': {'kpi': 'bler_dl', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 5.605193857299268e-45, 'labels': {'amf_ue_ngap_id': 1}}, 'data_ul': {'kpi': 'data_ul', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'data_dl': {'kpi': 'data_dl', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': None, 'value': 0, 'labels': {'amf_ue_ngap_id': 1}}, 'snr': {'kpi': 'snr', 'source': 'RAN', 'timestamp': 1699281400219109, 'unit': 'dBm', 'value': 55.0, 'labels': {'amf_ue_ngap_id': 1}}}, 'TimeStamp': 1699281400.2334554}
 192.168.90.169 - - [06/Nov/2023 15:36:40] "POST /subscriptions/l2meas-200 HTTP/1.1" 200 -
@@ -331,12 +336,34 @@ root@fit03:~/blueprints/mep# python examples/example-mec-app.py
 
 ### Cleanup
 
-To clean up the demo, you should first delete all docker containers by running on your laptop:
+To clean up the demo, first delete all docker containers by running on your laptop:
  
-`$ ./demo-rnis.py --stop` 
+`your-laptop:oai5g-rnis$ ./demo-rnis.py --stop` 
 
 Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, just run on your laptop the following command:
 
-`$ ./demo-rnis.py --cleanup`
+`your-laptop:oai5g-rnis$ ./demo-rnis.py --cleanup`
 
+
+### Extra
+
+You can have a look at the nepi-ng automata when using different script options by using the `- n` option. This will not run the script but will generate a graph showing the automata.
+
+``` bash
+your-laptop:oai5g-rnis$ ./demo-rnis.py -Rb210 --ran 2 -Q9 -l -n
+Running the MEP demo version on following FIT nodes:
+	fit01 for CN and CM containers
+	fit02 for gNB, flexric, rabbitmq and rnis-xapp containers
+	fit03 for MEP and rnis containers
+Using Quectel UE on node fit09
+No UE phone involved
+No qhat UE involved
+	oai-gnb running with b210
+FIT image loading: YES with u20.04-perf-uhd3.15-docker-images
+Automatically start the demo after setup
+********** run mode WITH rhubarbe imaging the FIT nodes (quectel node(s) prepared: ['9']) (no qhat node prepared) (no phone prepared)
+ See main scheduler in demo-rnis-graph.svg
+```
+
+![Automata graph generated](./automata-example.png)
 
