@@ -32,7 +32,7 @@ Run `demo-mep.py --help` for more details.
 * [OAI 5G Core Network Deployment using Helm Charts](https://gitlab.eurecom.fr/oai/cn5g/oai-cn5g-fed/-/blob/master/docs/DEPLOY_SA5G_HC.md)
 * [R2lab welcome page](https://r2lab.inria.fr/)
 * [R2lab run page (requires login)](https://r2lab.inria.fr/run.md)
-* [github repo for this page](https://github.com/sopnode/oai5g-rnis)
+* [github repo for this page](https://github.com/sopnode/oai5g-mep)
 
 
 
@@ -64,7 +64,7 @@ We added the two following options to be used only when the demo-mep.py script h
 First assume that you want to deploy the MEP blueprint with a gNB deployed on fit02 and with fit09 with 5G Quectel device selected as UE, you will run:
 
 
-`your-laptop:oai5g-rnis$ ./demo-mep.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
+`your-laptop:oai5g-mep$ ./demo-mep.py -s your-slicename -Rb210 --ran 2 -Q9 -l`
 
 Then, when the script returns, you can check the containers created on the 3 physical hosts:
 
@@ -112,12 +112,12 @@ eb69f6121e8b   postgres:9.6                          "docker-entrypoint.s…"   
 
 Now, stop the demo and retrieve the logs for all docker containers:
 
-`your-laptop:oai5g-rnis$ ./demo-mep.py -s your-slicename -Rb210 --ran 2 -Q9 --stop -L`
+`your-laptop:oai5g-mep$ ./demo-mep.py -s your-slicename -Rb210 --ran 2 -Q9 --stop -L`
 
-The following logs will be retrieved automatically on your local machine:
+The following logs will be retrieved automatically on your machine within the local STATS directory:
 
 ``` bash
-your-laptop:oai5g-rnis$ tar -ztvf STATS/oai5g-stats-core.tgz
+your-laptop:oai5g-mep$ tar -ztvf STATS/oai5g-stats-core.tgz
 drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-core/
 -rw-r--r--  0 root   root    35757  6 nov 15:05 oai5g-stats-core/amf.log
 -rw-r--r--  0 root   root     8186  6 nov 15:05 oai5g-stats-core/udm.log
@@ -129,7 +129,7 @@ drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-core/
 -rw-r--r--  0 root   root     8169  6 nov 15:05 oai5g-stats-core/ausf.log
 -rw-r--r--  0 root   root     8963  6 nov 15:05 oai5g-stats-core/cm.log
 
-your-laptop:oai5g-rnis$ tar -ztvf STATS/oai5g-stats-ran.tgz
+your-laptop:oai5g-mep$ tar -ztvf STATS/oai5g-stats-ran.tgz
 
 drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-ran/
 -rw-r--r--  0 root   root    59254  6 nov 15:05 oai5g-stats-ran/rfsim5g-oai-gnb.log
@@ -139,7 +139,7 @@ drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-ran/
 -rw-r--r--  0 root   root        0  6 nov 15:05 oai5g-stats-ran/23.11.06T15.05
 -rw-r--r--  0 root   root    19905  6 nov 15:05 oai5g-stats-ran/rabbitmq-broker.log
 
-your-laptop:oai5g-rnis$ tar -ztvf STATS/oai5g-stats-mep.tgz
+your-laptop:oai5g-mep$ tar -ztvf STATS/oai5g-stats-mep.tgz
 
 drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-mep/
 -rw-r--r--  0 root   root     3134  6 nov 15:05 oai5g-stats-mep/oai-mep-gateway.log
@@ -152,7 +152,7 @@ drwxr-xr-x  0 root   root        0  6 nov 15:05 oai5g-stats-mep/
 
 Now, assume that you want to restart the demo in simulation mode, you will not have to reload R2lab images on the FIT nodes. No specific option is required as the simulation mode is used by default, just run:
 
-`your-laptop:oai5g-rnis$ ./demo-mep.py -s your-slicename`
+`your-laptop:oai5g-mep$ ./demo-mep.py -s your-slicename`
 
 Then, start the simulated UE by running on the ran host:
 
@@ -338,11 +338,11 @@ root@fit03:~/blueprints/mep# python examples/example-mec-app.py
 
 To clean up the demo, first delete all docker containers by running on your laptop:
  
-`your-laptop:oai5g-rnis$ ./demo-mep.py --stop` 
+`your-laptop:oai5g-mep$ ./demo-mep.py --stop` 
 
 Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, just run on your laptop the following command:
 
-`your-laptop:oai5g-rnis$ ./demo-mep.py --cleanup`
+`your-laptop:oai5g-mep$ ./demo-mep.py --cleanup`
 
 
 ### Extras
@@ -350,7 +350,7 @@ Then, to shutdown R2lab nodes and switch off USRP/Quectel devices, just run on y
 You can have a look at the nepi-ng automata when using different script options by adding the `- n` flag. This will not run the script but will generate a graph showing the sequence of actions.
 
 ``` bash
-your-laptop:oai5g-rnis$ ./demo-mep.py -Rb210 --ran 2 -Q9 -l -n
+your-laptop:oai5g-mep$ ./demo-mep.py -Rb210 --ran 2 -Q9 -l -n
 Running the MEP demo version on following FIT nodes:
 	fit01 for CN and CM containers
 	fit02 for gNB, flexric, rabbitmq and rnis-xapp containers
