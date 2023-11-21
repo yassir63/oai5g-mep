@@ -1,6 +1,7 @@
 # expected jinja variables, set by calling python script:
 #
 # {{gateway}} - typically 'faraday.inria.fr'
+# {{slicename}} - typically 'inria_mep'
 # {{logs}} - typically 'True' or 'False'
 # {{auto_start}} - typically 'True' or 'False'
 # {{nodes}} - typically {'core': 'fit01', 'ran': 'fit02', 'mep' : 'fit03'} or {'core': 'fit01', 'ran': 'pc01', 'mep' : 'fit03'}
@@ -19,6 +20,7 @@
 nodes:
   - id: faraday
     hostname: {{gateway}}
+    username: {{slicename}}
     formatter: TimeHostFormatter
     verbose: {{verbose}}
   {% for function, hostname in nodes.items() %}

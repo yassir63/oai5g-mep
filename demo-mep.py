@@ -118,6 +118,7 @@ def run(*, mode, gateway, slicename, logs, auto_start, load_images,
 
     jinja_variables = dict(
         gateway=gateway,
+        slicename=slicename,
         logs=logs,
         auto_start=auto_start,
         nodes=dict(
