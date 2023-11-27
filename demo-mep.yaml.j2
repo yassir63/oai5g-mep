@@ -192,6 +192,17 @@ jobs:
       - type: RunScript
         command: ran.sh init {{nodes['core']}}
 
+  - id: init-prometheus
+    required: load-image
+    node: prometheus_node
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Clone blueprint, configure IP forwarding for prometheus host and launch containers
+    commands:
+      - type: RunScript
+        command: prometheus.sh init
+
   - id: init-mep
     required:
       - load-image
@@ -228,6 +239,21 @@ jobs:
     commands:
       - type: RunScript
         command: ran.sh start {{rru}}
+
+
+  - id: start-prometheus
+    required:
+      - init-ran
+      - start-core
+    node: prometheus_node
+    critical: True
+    verbose: {{verbose}}
+    label: >
+      Deploy prometheus container and start prometheus
+    commands:
+      - type: RunScript
+        command: prometheus.sh start
+
  
   - id: start-mep
     required:
@@ -359,6 +385,23 @@ jobs:
     commands:
       - type: RunScript
         command: ran.sh stop {{rru}} {{logs}}
+      {% if logs == 'True' %}
+      - type: Pull
+        remotepaths: "/tmp/oai5g-stats-ran.tgz"
+        localpath: "./STATS/"
+      {% endif %}
+
+
+  - id: stop-prometheus
+    required: start-ran
+    node: prometheus_node
+    critical: False
+    verbose: {{verbose}}
+    label: >
+      Delete prometheus and then remove prometheus container
+    commands:
+      - type: RunScript
+        command: prometheus.sh stop {{rru}} {{logs}}
       {% if logs == 'True' %}
       - type: Pull
         remotepaths: "/tmp/oai5g-stats-ran.tgz"

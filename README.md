@@ -2,7 +2,7 @@
 
 The *[demo-mep.py](./demo-mep.py)* script aims to deploy the [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) within the Sopnode/R2lab platform. 
 
-The [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) developed by Eurecom has been modified to be able to run it using either the rfsim mode or B210-based gNB and UE nodes (such as Quectel nodes and 5G phones) located in the R2lab platform. In the original blueprint, all the CN, RAN and MEP docker containers were running on the same host. The modified blueprint available [in this r2lab branch](https://gitlab.eurecom.fr/turletti/blueprints/-/tree/r2lab?ref_type=heads) will deploy the core-networks, ran and mep docker compose files on three different FIT nodes. 
+The [OpenAirInterface Multi-access Edge Computing Platform blueprint](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/blob/master/mep/README.md) developed by Eurecom has been modified to be able to run it using either the rfsim mode or B210-based gNB and UE nodes (such as Quectel nodes and 5G phones) located in the R2lab platform. In the original blueprint, all the CN, RAN and MEP docker containers were running on the same host. The modified blueprint available [in this r2lab branch](https://gitlab.eurecom.fr/oai/orchestration/blueprints/-/tree/r2lab/mep/docker-compose?ref_type=heads) will deploy the core-networks, ran and mep docker compose files on three different FIT nodes. 
 
 
 ### Software dependencies
