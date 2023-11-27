@@ -11,7 +11,7 @@ function init() {
     
     echo "init: Clone blueprint"
     rm -rf "$PATH_BP"
-    git clone --branch r2lab https://gitlab.eurecom.fr/turletti/blueprints.git
+    git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
 
     if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
     then
