@@ -3,13 +3,15 @@
 PATH_BP="/root/blueprints"
 PATH_MEP="$PATH_BP/mep"
 
+
+
 function init() {
     nodecore=$1
     shift
     
     echo "init: clone blueprint"
     rm -rf "$PATH_BP"
-    git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
+    git clone --branch main https://gitlab.com/yassir63/blueprints.git
 
     echo "init: Setting up ran IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
@@ -44,6 +46,15 @@ function start() {
     docker compose -f "$RAN_COMPOSE_FILE" ps -a
     echo "start: Launching oai-rnis-xapp"
     docker compose -f "$RAN_COMPOSE_FILE" up -d oai-rnis-xapp
+
+
+    echo "start: Launching iperf3 exporter and server"
+    docker compose -f "docker-compose/docker-compose-iperf.yaml" up -d
+
+
+    echo "start: Launching speed exporter and server"
+    docker run --rm -d -p 9469:9469 billimek/prometheus-speedtest-exporter:latest
+
 }
 
 
@@ -81,6 +92,8 @@ function stop() {
 	docker logs oai-oai-flexric > $DIR/oai-flexric.log 2>&1
 	docker logs rabbitmq-broker > $DIR/rabbitmq-broker.log 2>&1
 	docker logs rfsim5g-oai-gnb > $DIR/rfsim5g-oai-gnb.log 2>&1
+    # docker logs iperf3 > $DIR/iperf3.log 2>&1
+	# docker logs speedtest > $DIR/speedtest.log 2>&1
 	cd /tmp
 	tar cfz $LOGS.tgz $LOGS
     fi

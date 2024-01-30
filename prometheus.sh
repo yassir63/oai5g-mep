@@ -57,6 +57,63 @@ function start() {
     docker compose ps -a
     # curl http://oai-mep.org/service_registry/v1/discover
     curl http://localhost:9090/api/v1/status/config
+
+
+    curl -L -O https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
+    echo "Downloaded the node exporter tar file"
+    tar xvfz node_exporter-1.7.0.linux-amd64.tar.gz
+    echo "Extracted the node exporter tar file"
+    cd node_exporter-1.7.0.linux-amd64
+    echo "Starting the node exporter"
+    ./node_exporter
+    echo "Sleep 10s and assure node exporter is up"
+    sleep 10
+    echo "Started the node exporter !!!!"
+    curl 172.17.0.1:9100/metrics
+
+
+    echo "start: Launching Grafana docker container"
+    docker run -d --name=grafana -p 3000:3000 grafana/grafana-enterprise:10.3.1-ubuntu
+    echo "Sleep 10s and assure Grafana is up"
+    sleep 10
+
+    echo "Configuring Grafana :"
+
+
+
+    GRAFANA_URL="127.0.0.1:3000"
+    GRAFANA_USER="admin"
+    GRAFANA_PASSWORD="admin"
+
+    response=$(curl -s -X POST \
+    -H "Content-Type: application/json" \
+    -d '{"name":"APIKeyForAutomation"}' \
+    "$GRAFANA_URL/api/auth/keys" \
+    --user "$GRAFANA_USER:$GRAFANA_PASSWORD"
+    )
+
+    api_key=$(echo "$response" | jq -r '.key')
+
+    echo "Generated API Key: $api_key"
+
+    API_KEY=$api_key
+
+    curl -X POST \
+    -H "Authorization: Bearer $API_KEY" \
+    -H "Content-Type: application/json" \
+    -d '{
+        "name": "Prometheus",
+        "type": "prometheus",
+        "url": "127.0.0.1:9090",
+        "access": "proxy",
+        "basicAuth": false
+    }' \
+    "$GRAFANA_URL/api/datasources"
+
+
+    echo "Listing Data Sources :"
+    curl -H "Authorization: Bearer $API_KEY" "$GRAFANA_URL/api/datasources"
+
 }
 
 
@@ -67,7 +124,7 @@ function stop() {
     if [[ "$logs" == "True" ]]; then
         echo "stop: retrieving prometheus container logs"
         DATE=$(date +"%y.%m.%dT%H.%M")
-        LOGS="prometheus-logs"
+        LOGS="prometheus-logs"  
         DIR="/tmp/$LOGS"
         rm -rf "$DIR"; mkdir "$DIR"
         touch "$DIR/$DATE"
