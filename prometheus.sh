@@ -50,13 +50,22 @@ function init() {
 function start() {
 
     cd "$PATH_PROMETHEUS"
-    echo "start: Launching prometheus docker container"
+    echo "start: Launching prometheus and Grafana docker container"
     docker compose up -d
-    echo "Sleep 10s and assure Prometheus container is up"
+    echo "Sleep 10s and assure Prometheus and Grafana containers are up"
     sleep 10
     docker compose ps -a
     # curl http://oai-mep.org/service_registry/v1/discover
     curl http://localhost:9090/api/v1/status/config
+
+
+    echo "Configuring Grafana :"
+
+    docker exec grafana grafana-cli admin reset-admin-password r2lab
+    docker exec grafana curl -X POST -H 'Content-Type: application/json' -d '{"name":"Prometheus","type":"prometheus","url":"http://prometheus:9090","access":"proxy","basicAuth":false}' http://admin:r2lab@localhost:3000/api/datasources
+
+
+    echo "Grafana Configured !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
 
 
     curl -L -O https://github.com/prometheus/node_exporter/releases/download/v1.7.0/node_exporter-1.7.0.linux-amd64.tar.gz
@@ -70,50 +79,7 @@ function start() {
     sleep 10
     echo "Started the node exporter !!!!"
     curl 172.17.0.1:9100/metrics
-
-
-    echo "start: Launching Grafana docker container"
-    docker run -d --name=grafana -p 3000:3000 grafana/grafana-enterprise:10.3.1-ubuntu
-    echo "Sleep 10s and assure Grafana is up"
-    sleep 10
-
-    echo "Configuring Grafana :"
-
-
-
-    GRAFANA_URL="127.0.0.1:3000"
-    GRAFANA_USER="admin"
-    GRAFANA_PASSWORD="admin"
-
-    response=$(curl -s -X POST \
-    -H "Content-Type: application/json" \
-    -d '{"name":"APIKeyForAutomation"}' \
-    "$GRAFANA_URL/api/auth/keys" \
-    --user "$GRAFANA_USER:$GRAFANA_PASSWORD"
-    )
-
-    api_key=$(echo "$response" | jq -r '.key')
-
-    echo "Generated API Key: $api_key"
-
-    API_KEY=$api_key
-
-    curl -X POST \
-    -H "Authorization: Bearer $API_KEY" \
-    -H "Content-Type: application/json" \
-    -d '{
-        "name": "Prometheus",
-        "type": "prometheus",
-        "url": "127.0.0.1:9090",
-        "access": "proxy",
-        "basicAuth": false
-    }' \
-    "$GRAFANA_URL/api/datasources"
-
-
-    echo "Listing Data Sources :"
-    curl -H "Authorization: Bearer $API_KEY" "$GRAFANA_URL/api/datasources"
-
+    
 }
 
 
