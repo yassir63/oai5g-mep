@@ -1,6 +1,6 @@
 absl-py==2.0.0
 apssh==0.25.0
-apturl==0.5.2
+zapturl==0.5.2
 asynciojobs==0.18.1
 asyncssh==2.14.1
 bcrypt==3.2.0

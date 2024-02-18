@@ -3,7 +3,7 @@
 # First SSH command
 ssh -tt inria_ter01@faraday.inria.fr "\
     # Second SSH command after the first connection is established
-    ssh -tt root@fit02 << EOF
+    ssh -tt root@fit09 << EOF
         # Install Docker using snap
         snap install docker
 
