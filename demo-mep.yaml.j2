@@ -190,7 +190,7 @@ jobs:
       Clone blueprint, configure IP forwarding for ran host and launch containers
     commands:
       - type: RunScript
-        command: ran.sh init {{nodes['core']}}
+        command: ran.sh init {{nodes['core']}} {{nodes['mep']}}
 
   - id: init-mep
     required:
