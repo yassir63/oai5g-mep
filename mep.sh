@@ -11,7 +11,8 @@ function init() {
     
     echo "init: Clone blueprint"
     rm -rf "$PATH_BP"
-    git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
+    #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
+    git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
 
     if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
     then
@@ -39,8 +40,8 @@ function init() {
     esac
     echo "ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" dev control"
     ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" dev control
-    echo "ip route replace 192.168.80.0/24 via 192.168.3."$suffix_ran" dev control"
-    ip route replace 192.168.80.0/24 via 192.168.3."$suffix_ran" dev control
+    #echo "ip route replace 192.168.80.0/24 via 192.168.3."$suffix_ran" dev control"
+    #ip route replace 192.168.80.0/24 via 192.168.3."$suffix_ran" dev control
 }
 
 
@@ -48,16 +49,16 @@ function start() {
 
     cd "$PATH_MEP"
     echo "start: Launching mep docker container"
-    docker compose -f docker-compose/docker-compose-mep.yaml up -d
-    echo "Sleep 10s and check if mep is healthy"
-    sleep 10
-    docker compose -f docker-compose/docker-compose-mep.yaml ps -a
+    #docker compose -f docker-compose/docker-compose-mep.yaml up -d
+    #echo "Sleep 10s and check if mep is healthy"
+    #sleep 10
+    #docker compose -f docker-compose/docker-compose-mep.yaml ps -a
 
-    echo "start: Launching rnis docker container"
-    docker compose -f docker-compose/docker-compose-rnis.yaml up -d
-    echo "Sleep 10s and check the services exposed by mep"
-    sleep 10
-    curl http://oai-mep.org/service_registry/v1/discover
+    #echo "start: Launching rnis docker container"
+    #docker compose -f docker-compose/docker-compose-rnis.yaml up -d
+    #echo "Sleep 10s and check the services exposed by mep"
+    #sleep 10
+    #curl http://oai-mep.org/service_registry/v1/discover
 }
 
 
@@ -81,10 +82,10 @@ function stop() {
     fi
     
     cd "$PATH_MEP"
-    echo "stop: Remove mep container"
-    docker compose -f docker-compose/docker-compose-mep.yaml down -t2
-    echo "stop: Remove rnis container"
-    docker compose -f docker-compose/docker-compose-rnis.yaml down -t2
+    #echo "stop: Remove mep container"
+    #docker compose -f docker-compose/docker-compose-mep.yaml down -t2
+    #echo "stop: Remove rnis container"
+    #docker compose -f docker-compose/docker-compose-rnis.yaml down -t2
 }
 
 ########################################

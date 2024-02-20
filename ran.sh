@@ -11,7 +11,9 @@ function init() {
     
     echo "init: clone blueprint"
     rm -rf "$PATH_BP"
-    git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
+    #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
+    git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    ls blueprints
 
     echo "init: Setting up ran IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
@@ -29,8 +31,8 @@ function init() {
     esac
     echo "ip route replace 192.168.70.0/24 via 192.168.3.$suffix_core"
     ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" 
-    echo "ip route replace 192.168.90.0/24 via 192.168.3.$suffix_mep"
-    ip route replace 192.168.90.0/24 via 192.168.3."$suffix_mep" 
+    #echo "ip route replace 192.168.90.0/24 via 192.168.3.$suffix_mep"
+    #ip route replace 192.168.90.0/24 via 192.168.3."$suffix_mep" 
 }
 
 
@@ -53,6 +55,20 @@ function start() {
     docker compose -f "$RAN_COMPOSE_FILE" ps -a
     echo "start: Launching oai-rnis-xapp"
     docker compose -f "$RAN_COMPOSE_FILE" up -d oai-rnis-xapp
+
+    #bloc test 
+    sleep 10
+    echo "start: Launching mep docker container"
+    docker compose -f docker-compose/docker-compose-mep.yaml up -d
+    echo "Sleep 10s and check if mep is healthy"
+    sleep 10
+    docker compose -f docker-compose/docker-compose-mep.yaml ps -a
+
+    echo "start: Launching rnis docker container"
+    docker compose -f docker-compose/docker-compose-rnis.yaml up -d
+    echo "Sleep 10s and check the services exposed by mep"
+    sleep 10
+    curl http://oai-mep.org/service_registry/v1/discover    
 }
 
 
@@ -78,7 +94,7 @@ function stop() {
 	UE_NAME="rfsim5g-oai-nr-ue"
     elif [[ "$rru" = "b210" ]]; then
 	RAN_COMPOSE_FILE="docker-compose/docker-compose-ran-r2lab.yaml"
-	GNB_NAME="oai-gnb"
+	GNB_NAME="b210-oai-gnb"
 	UE_NAME="oai-nr-ue"
     fi
 
@@ -94,6 +110,12 @@ function stop() {
 	docker logs oai-flexric > $DIR/oai-flexric.log 2>&1
 	docker logs rabbitmq-broker > $DIR/rabbitmq-broker.log 2>&1
 	docker logs $GNB_NAME > $DIR/$GNB_NAME.log 2>&1
+	# mep bloc follows
+	docker logs oai-rnis > $DIR/oai-rnis.log 2>&1
+	docker logs oai-mep-registry > $DIR/oai-mep-registry.log 2>&1
+	docker logs oai-mep-gateway > $DIR/oai-mep-gateway.log 2>&1
+	docker logs oai-mep-gateway-db > $DIR/oai-mep-gateway-db.log 2>&1
+	
 	cd /tmp
 	tar cfz $LOGS.tgz $LOGS
     fi
@@ -101,6 +123,12 @@ function stop() {
     cd "$PATH_MEP"
     echo "stop: Remove ran container"
     docker compose -f "$RAN_COMPOSE_FILE" down -t2
+
+    # mep bloc
+    echo "stop: Remove mep container"
+    docker compose -f docker-compose/docker-compose-mep.yaml down -t2
+    echo "stop: Remove rnis container"
+    docker compose -f docker-compose/docker-compose-rnis.yaml down -t2    
 }
 
 ########################################
