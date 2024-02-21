@@ -190,7 +190,7 @@ jobs:
       Clone blueprint, configure IP forwarding for ran host and launch containers
     commands:
       - type: RunScript
-        command: ran.sh init {{nodes['core']}}
+        command: ran.sh init {{nodes['core']}} {{nodes['mep']}}
 
   - id: init-prometheus
     required: load-image
@@ -318,10 +318,8 @@ jobs:
     critical: False
     verbose: {{verbose}}
     label: >
-      sleep 60s, attach quectel UE on fit node {{n}}; sleep 20s and test cx
+      attach quectel UE on fit node {{n}}; sleep 20s and test cx
     commands:
-      - type: Run
-        command: sleep 60
       - type: RunScript
         command: >
           {{nodes_sh}} start-quectel
@@ -343,10 +341,8 @@ jobs:
     critical: False
     verbose: {{verbose}}
     label: >
-      sleep 60s, attach qhat0{{n}} UE; sleep 20s and test cx
+      attach qhat0{{n}} UE; sleep 20s and test cx
     commands:
-      - type: Run
-        command: sleep 60
       - type: RunScript
         command: >
           {{nodes_sh}} start-quectel
