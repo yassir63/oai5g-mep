@@ -178,7 +178,7 @@ jobs:
       Clone blueprint, configure IP forwarding for core-network host and launch containers
     commands:
       - type: RunScript
-        command: core-network.sh init
+        command: core-network.sh init {{nodes['ran']}}
 
   - id: init-ran
     required:
