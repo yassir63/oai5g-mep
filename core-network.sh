@@ -4,8 +4,10 @@ PATH_BP="/root/blueprints"
 PATH_MEP="$PATH_BP/mep"
 
 function init() {
+    noderan=$1
+    shift
 
-    echo "Clone blueprint"
+    echo "init: clone blueprint"
     rm -rf "$PATH_BP"
     
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
@@ -15,6 +17,16 @@ function init() {
     echo "init: Setting up core-network IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
     iptables -P FORWARD ACCEPT
+    case $noderan in
+	fit0*) suffix_ran=${noderan#*fit0} ;;
+	fit*) suffix_ran=${noderan#*fit} ;;
+	pc01) suffix_ran=61 ;;
+	pc02) suffix_ran=62 ;;
+	*) echo "init: unknown ran node $noderan" ;;
+    esac
+    echo "init: Adding routes to reach 192.168.80.0/24 and 192.168.82.0/24 subnets via 192.168.3.$suffix_ran"
+    ip route replace 192.168.80.0/24 via 192.168.3."$suffix_ran"
+    ip route replace 192.168.82.0/24 via 192.168.3."$suffix_ran" # N6 (upf - gnb)
 }
 
 

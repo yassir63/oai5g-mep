@@ -15,10 +15,23 @@ function init() {
     rm -rf "$PATH_BP"
 
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
-    git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
-    ls blueprints
+    #git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    
+    
+    git clone --branch main https://gitlab.com/yassir63/blueprints.git
 
-    #git clone --branch main https://gitlab.com/yassir63/blueprints.git
+
+    # following mep block
+    if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
+    then
+	echo 'init: add oai-mep.org IP address to /etc/hosts'
+	echo '192.168.80.2 oai-mep.org' >> /etc/hosts
+    else
+	echo 'init: oai-mep.org IP address already set in /etc/hosts'
+    fi
+    
+
+
 
 
     echo "init: Setting up ran IP forwarding rules"
@@ -35,7 +48,7 @@ function init() {
 	fit*) suffix_mep=${nodemep#*fit} ;;
 	*) echo "init: unknown mep node $nodemep" ;;
     esac
-    echo "ip route replace 192.168.70.0/24 via 192.168.3.$suffix_core"
+    echo "init: Adding route to reach 192.168.70.0/24subnet via 192.168.3.$suffix_core"
     ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" 
     #echo "ip route replace 192.168.90.0/24 via 192.168.3.$suffix_mep"
     #ip route replace 192.168.90.0/24 via 192.168.3."$suffix_mep" 
