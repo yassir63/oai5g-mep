@@ -38,6 +38,7 @@ default_quectel_image = 'quectel-mbim-single-dnn'
 default_core = 1 # integer representing the ID of a FIT node to run the CN containers
 default_ran = "2" # *string* representing either the ID of a fit node or "pc01" or "pc02" to run the RAN containers
 default_mep = 3 # integer representing the ID of a FIT node to run the MEP containers
+default_prometheus = 5 # integer representing the ID of a FIT node to run the Prometheus container
 
 # Default Phones used as UE
 default_phones = []
@@ -63,7 +64,7 @@ default_regcred_email = 'r2labuser@turletti.com'
 
 
 def run(*, mode, gateway, slicename, logs, auto_start, load_images, 
-        core, ran, mep, phones, quectel_nodes, qhat_nodes, rru, 
+        core, ran, mep, prometheus, phones, quectel_nodes, qhat_nodes, rru, 
         regcred_name, regcred_password, regcred_email,
         image, quectel_image, verbose, dry_run):
     """
@@ -107,10 +108,10 @@ def run(*, mode, gateway, slicename, logs, auto_start, load_images,
 
     if ran.isnumeric():
         ran_host=r2lab_hostname(ran)
-        nodes_str=f"{core} {ran} {mep}"
+        nodes_str=f"{core} {ran} {mep} {prometheus}"
     else:
         ran_host=ran
-        nodes_str=f"{core} {mep}"
+        nodes_str=f"{core} {mep} {prometheus}"
 
     INCLUDES = [find_local_embedded_script(x) for x in (
       "r2labutils.sh", "nodes.sh", "faraday.sh"
@@ -125,6 +126,7 @@ def run(*, mode, gateway, slicename, logs, auto_start, load_images,
             core=r2lab_hostname(core),
             ran=ran_host,
             mep=r2lab_hostname(mep),
+            prometheus=r2lab_hostname(prometheus),
         ),
         nodes_str=nodes_str,
         phones=phones,
@@ -351,6 +353,9 @@ def main():
 
     parser.add_argument("--ran", default=default_ran,
                         help="id of the FIT node that will run the ran container or pc01 or pc02")
+    
+    parser.add_argument("--prometheus", default=default_prometheus,
+                        help="id of the FIT node that will run the prometheus container")
 
     parser.add_argument("--mep", default=default_mep, type=int, choices=range(1,38),
                         help="id of the FIT node that will run the mep container")
@@ -422,6 +427,7 @@ def main():
     print(f"\t{r2lab_hostname(args.core)} for CN and CM containers")
     print(f"\t{ran_host} for gNB, flexric, rabbitmq and rnis-xapp containers")
     print(f"\t{r2lab_hostname(args.mep)} for MEP and rnis containers")
+    print(f"\t{r2lab_hostname(args.prometheus)} for Prometheus containers")
             
     if args.quectel_nodes:
         for quectel in args.quectel_nodes:
@@ -474,7 +480,7 @@ def main():
     run(mode=mode, gateway=default_gateway, slicename=args.slicename,
         logs=logs_str, auto_start=args.auto_start,
         load_images=args.load_images,
-        core=args.core, ran=args.ran, mep=args.mep,
+        core=args.core, ran=args.ran, mep=args.mep, prometheus=args.prometheus,
         phones=args.phones, quectel_nodes=args.quectel_nodes,
         qhat_nodes=args.qhat_nodes, rru=args.rru,
         regcred_name=args.regcred_name,

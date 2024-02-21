@@ -3,6 +3,8 @@
 PATH_BP="/root/blueprints"
 PATH_MEP="$PATH_BP/mep"
 
+
+
 function init() {
     nodecore=$1
     shift
@@ -11,8 +13,13 @@ function init() {
     
     echo "init: clone blueprint"
     rm -rf "$PATH_BP"
+
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
-    git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    #git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    
+    
+    git clone --branch main https://gitlab.com/yassir63/blueprints.git
+
 
     # following mep block
     if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
@@ -23,6 +30,10 @@ function init() {
 	echo 'init: oai-mep.org IP address already set in /etc/hosts'
     fi
     
+
+
+
+
     echo "init: Setting up ran IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
     iptables -P FORWARD ACCEPT
@@ -64,6 +75,7 @@ function start() {
     
     echo "start: Launching oai-rnis-xapp"
     docker compose -f "$RAN_COMPOSE_FILE" up -d oai-rnis-xapp
+
 
     echo "Sleep 10s and run curl http://192.168.80.166:15672/#/queues"
     sleep 10
@@ -107,6 +119,16 @@ function start() {
 
     echo "Run: curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas'"
     curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas'
+
+
+    echo "start: Launching iperf3 exporter and server"
+    docker compose -f "docker-compose/docker-compose-iperf.yaml" up -d
+
+
+    echo "start: Launching speed exporter and server"
+    docker run --rm -d -p 9469:9469 billimek/prometheus-speedtest-exporter:latest
+
+
 }
 
 
@@ -132,7 +154,11 @@ function stop() {
 	UE_NAME="rfsim5g-oai-nr-ue"
     elif [[ "$rru" = "b210" ]]; then
 	RAN_COMPOSE_FILE="docker-compose/docker-compose-ran-r2lab.yaml"
+
 	GNB_NAME="b210-oai-gnb"
+
+	#GNB_NAME="oai-gnb"
+
 	UE_NAME="oai-nr-ue"
     fi
 
@@ -153,7 +179,9 @@ function stop() {
 	docker logs oai-mep-registry > $DIR/oai-mep-registry.log 2>&1
 	docker logs oai-mep-gateway > $DIR/oai-mep-gateway.log 2>&1
 	docker logs oai-mep-gateway-db > $DIR/oai-mep-gateway-db.log 2>&1
-	
+
+    # docker logs iperf3 > $DIR/iperf3.log 2>&1
+	# docker logs speedtest > $DIR/speedtest.log 2>&1
 	cd /tmp
 	tar cfz $LOGS.tgz $LOGS
     fi
