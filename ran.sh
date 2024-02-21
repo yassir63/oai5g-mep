@@ -76,8 +76,12 @@ function stop() {
     # Use the right Docker compose file
     if [[ "$rru" = "rfsim" ]]; then
 	RAN_COMPOSE_FILE="docker-compose/docker-compose-ran.yaml"
+	GNB_NAME="rfsim5g-oai-gnb"
+	UE_NAME="rfsim5g-oai-nr-ue"
     elif [[ "$rru" = "b210" ]]; then
 	RAN_COMPOSE_FILE="docker-compose/docker-compose-ran-r2lab.yaml"
+	GNB_NAME="oai-gnb"
+	UE_NAME="oai-nr-ue"
     fi
 
    if [[ "$logs" = "True" ]]; then
@@ -87,11 +91,11 @@ function stop() {
 	DIR="/tmp/$LOGS"
 	rm -rf $DIR; mkdir $DIR
 	touch $DIR/$DATE
-	docker logs rfsim5g-oai-nr-ue > $DIR/rfsim5g-oai-nr-ue.log 2>&1
+	docker logs $UE_NAME > $DIR/$UE_NAME.log 2>&1
 	docker logs oai-rnis-xapp > $DIR/oai-rnis-xapp.log 2>&1
-	docker logs oai-oai-flexric > $DIR/oai-flexric.log 2>&1
+	docker logs oai-flexric > $DIR/oai-flexric.log 2>&1
 	docker logs rabbitmq-broker > $DIR/rabbitmq-broker.log 2>&1
-	docker logs rfsim5g-oai-gnb > $DIR/rfsim5g-oai-gnb.log 2>&1
+	docker logs $GNB_NAME > $DIR/$GNB_NAME.log 2>&1
     # docker logs iperf3 > $DIR/iperf3.log 2>&1
 	# docker logs speedtest > $DIR/speedtest.log 2>&1
 	cd /tmp
