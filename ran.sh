@@ -14,6 +14,15 @@ function init() {
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
     git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
 
+    # following mep block
+    if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
+    then
+	echo 'init: add oai-mep.org IP address to /etc/hosts'
+	echo '192.168.80.2 oai-mep.org' >> /etc/hosts
+    else
+	echo 'init: oai-mep.org IP address already set in /etc/hosts'
+    fi
+    
     echo "init: Setting up ran IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
     iptables -P FORWARD ACCEPT
