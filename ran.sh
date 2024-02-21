@@ -50,25 +50,55 @@ function start() {
     cd "$PATH_MEP"
     echo "start: Launching oai-gnb, oai-flexric and rabbitmq"
     docker compose -f "$RAN_COMPOSE_FILE" up -d oai-gnb oai-flexric rabbitmq
-    echo "Sleep 10s and check if the core network is healthy"
-    sleep 10
+    echo "Sleep 30s and check if RAN containers are healthy"
+    sleep 30
     docker compose -f "$RAN_COMPOSE_FILE" ps -a
+    
     echo "start: Launching oai-rnis-xapp"
     docker compose -f "$RAN_COMPOSE_FILE" up -d oai-rnis-xapp
 
-    #bloc test 
+    echo "Sleep 10s and run curl http://192.168.80.166:15672/#/queues"
     sleep 10
+
+    echo "Show IPs of RAN containers"
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
+
+    echo "Run: curl http://192.168.80.166:15672/#/queues"
+    curl http://192.168.80.166:15672/#/queues
+    
+    #mep start bloc 
+    echo "***** Deploy OAI-MEP"
     echo "start: Launching mep docker container"
     docker compose -f docker-compose/docker-compose-mep.yaml up -d
-    echo "Sleep 10s and check if mep is healthy"
-    sleep 10
+    echo "Sleep 20s and check if mep is healthy"
+    sleep 20
     docker compose -f docker-compose/docker-compose-mep.yaml ps -a
 
+    echo "run curl http://oai-mep.org/service_registry/v1/ui"
+    curl http://oai-mep.org/service_registry/v1/ui
+
+    echo "***** Deploy OAI-RNIS"
     echo "start: Launching rnis docker container"
     docker compose -f docker-compose/docker-compose-rnis.yaml up -d
-    echo "Sleep 10s and check the services exposed by mep"
-    sleep 10
-    curl http://oai-mep.org/service_registry/v1/discover    
+    echo "Sleep 15s"
+    sleep 15
+
+    if [[ "$rru" = "rfsim" ]]; then
+	echo "Now deploy the simulated UE and wait 10s"
+	    echo "start-nr-ue: Launching oai-nr-ue"
+	    docker compose -f "$RAN_COMPOSE_FILE" up -d oai-nr-ue
+	    sleep 10
+    fi
+    
+    echo "Show IPs of MEP containers"
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
+    
+    echo "Check the services exposed by mep"
+    echo "Run: curl http://oai-mep.org/service_registry/v1/discover"
+    curl http://oai-mep.org/service_registry/v1/discover
+
+    echo "Run: curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas'"
+    curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas'
 }
 
 

@@ -28,16 +28,18 @@ function start() {
     fi
 
     cd "$PATH_MEP"
-    echo "start: Launching core-network, sleep 10s"
+    echo "Deploy OAI 5G Core Network"
     docker compose -f "$CORE_COMPOSE_FILE" up -d
-    echo "Sleep 10s and check if the core network is healthy"
-    sleep 10
+    echo "Sleep 30s and check if the core network is healthy"
+    sleep 30
     docker compose -f "$CORE_COMPOSE_FILE" ps -a
-    echo "start: Launching cm"
+    echo "Deploy cm"
     docker compose -f docker-compose/docker-compose-cm.yaml up -d
     echo "Sleep 10s and check if cm is healthy"
     sleep 10
     docker compose -f docker-compose/docker-compose-cm.yaml ps -a
+    echo "Show IPs of CN containers"
+    docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}} %tab% {{.Name}}' $(docker ps -aq) | sed 's#%tab%#\t#g' | sed 's#/##g' | sort -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4n
 }
 
 
