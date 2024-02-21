@@ -1,5 +1,4 @@
 #!/bin/bash
-
 PATH_BP="/root/blueprints"
 PATH_MEP="$PATH_BP/mep"
 
@@ -15,11 +14,11 @@ function init() {
     rm -rf "$PATH_BP"
 
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
-    git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    #git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    
+
+    git clone --branch main https://gitlab.com/yassir63/blueprints.git
     ls blueprints
-
-    #git clone --branch main https://gitlab.com/yassir63/blueprints.git
-
 
     echo "init: Setting up ran IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
@@ -112,8 +111,8 @@ function start() {
     docker compose -f "docker-compose/docker-compose-iperf.yaml" up -d
 
 
-    echo "start: Launching speed exporter and server"
-    docker run --rm -d -p 9469:9469 billimek/prometheus-speedtest-exporter:latest
+    # echo "start: Launching speed exporter and server"
+    # docker run --rm -d -p 9469:9469 billimek/prometheus-speedtest-exporter:latest
 
 
 }

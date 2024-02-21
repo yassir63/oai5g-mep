@@ -1,5 +1,4 @@
 #!/bin/bash
-
 PATH_BP="/root/blueprints"
 PATH_MEP="$PATH_BP/mep"
 
@@ -13,7 +12,8 @@ function init() {
     rm -rf "$PATH_BP"
 
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
-    git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    #git clone --branch r2lab-7080 https://gitlab.eurecom.fr/turletti/blueprints.git
+    git clone --branch main https://gitlab.com/yassir63/blueprints.git
 
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
 
