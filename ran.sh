@@ -47,8 +47,10 @@ function init() {
 	fit*) suffix_mep=${nodemep#*fit} ;;
 	*) echo "init: unknown mep node $nodemep" ;;
     esac
-    echo "init: Adding route to reach 192.168.70.0/24subnet via 192.168.3.$suffix_core"
+    echo "init: Adding route to reach 192.168.70.0/24 subnet via 192.168.3.$suffix_core"
     ip route replace 192.168.70.0/24 via 192.168.3."$suffix_core" 
+    echo "init: Adding route to reach the UPF from the gNB (N3)"
+    ip route replace 192.168.72.0/24 via 192.168.3."$suffix_core" 
     #echo "ip route replace 192.168.90.0/24 via 192.168.3.$suffix_mep"
     #ip route replace 192.168.90.0/24 via 192.168.3."$suffix_mep" 
 }
