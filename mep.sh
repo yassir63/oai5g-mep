@@ -18,13 +18,13 @@ function init() {
     #git clone --branch r2lab https://gitlab.eurecom.fr/oai/orchestration/blueprints.git
 
 
-    if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
-    then
-	echo 'init: add oai-mep.org IP address to /etc/hosts'
-	echo '192.168.90.2 oai-mep.org' >> /etc/hosts
-    else
-	echo 'init: oai-mep.org IP address already set in /etc/hosts'
-    fi
+    # if [ $(grep -ic "oai-mep.org" /etc/hosts) -eq 0 ]
+    # then
+	# echo 'init: add oai-mep.org IP address to /etc/hosts'
+	# echo '192.168.90.2 oai-mep.org' >> /etc/hosts
+    # else
+	# echo 'init: oai-mep.org IP address already set in /etc/hosts'
+    # fi
 
     echo "init: Setting up mep IP forwarding rules"
     sysctl net.ipv4.conf.all.forwarding=1
@@ -52,7 +52,14 @@ function init() {
 function start() {
 
     cd "$PATH_MEP"
-    echo "start: Launching mep docker container"
+    echo "start: Launching Exporters !"
+    docker compose -f "docker-compose/docker-compose-exporters.yaml" up -d
+
+
+    # echo "start: Launching speed exporter and server"
+    # docker run --rm -d -p 9469:9469 billimek/prometheus-speedtest-exporter:latest
+
+
     #docker compose -f docker-compose/docker-compose-mep.yaml up -d
     #echo "Sleep 10s and check if mep is healthy"
     #sleep 10
@@ -77,10 +84,10 @@ function stop() {
 	DIR="/tmp/$LOGS"
 	rm -rf $DIR; mkdir $DIR
 	touch $DIR/$DATE
-	docker logs oai-rnis > $DIR/oai-rnis.log 2>&1
-	docker logs oai-mep-registry > $DIR/oai-mep-registry.log 2>&1
-	docker logs oai-mep-gateway > $DIR/oai-mep-gateway.log 2>&1
-	docker logs oai-mep-gateway-db > $DIR/oai-mep-gateway-db.log 2>&1
+	# docker logs oai-rnis > $DIR/oai-rnis.log 2>&1
+	# docker logs oai-mep-registry > $DIR/oai-mep-registry.log 2>&1
+	# docker logs oai-mep-gateway > $DIR/oai-mep-gateway.log 2>&1
+	# docker logs oai-mep-gateway-db > $DIR/oai-mep-gateway-db.log 2>&1
 	cd /tmp
 	tar cfz $LOGS.tgz $LOGS
     fi

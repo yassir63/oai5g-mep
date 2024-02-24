@@ -120,14 +120,6 @@ function start() {
     curl -X 'GET' 'http://oai-mep.org/rnis/v2/queries/layer2_meas'
 
 
-    echo "start: Launching iperf3 exporter and server"
-    docker compose -f "docker-compose/docker-compose-iperf.yaml" up -d
-
-
-    # echo "start: Launching speed exporter and server"
-    # docker run --rm -d -p 9469:9469 billimek/prometheus-speedtest-exporter:latest
-
-
 }
 
 
